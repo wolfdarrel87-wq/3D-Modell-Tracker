@@ -1,0 +1,1302 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Druckplatte – 3D-Druck Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#17161A;
+    --surface:#201F24;
+    --surface-2:#2A2930;
+    --border:#38363E;
+    --border-soft:#2E2C33;
+    --text:#F2F1ED;
+    --text-muted:#9C9AA3;
+    --text-faint:#6C6A72;
+    --accent:#7C9CFF;
+    --accent-soft:rgba(124,156,255,0.14);
+    --ready:#45D6C4;
+    --progress:#FFB627;
+    --fail:#FF5C5C;
+    --radius:14px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:
+      radial-gradient(circle at 1px 1px, rgba(255,255,255,0.055) 1px, transparent 0) 0 0/24px 24px,
+      var(--bg);
+    color:var(--text);
+    font-family:'Inter',sans-serif;
+    min-height:100vh;
+    -webkit-font-smoothing:antialiased;
+  }
+  ::selection{ background:var(--accent-soft); color:var(--text); }
+  a{color:inherit;}
+
+  .topbar{
+    position:sticky; top:0; z-index:20;
+    display:flex; align-items:center; justify-content:space-between;
+    gap:16px;
+    padding:18px clamp(16px,4vw,40px);
+    background:rgba(23,22,26,0.86);
+    backdrop-filter:blur(10px);
+    border-bottom:1px solid var(--border-soft);
+    flex-wrap:wrap;
+  }
+  .brand{ display:flex; align-items:center; gap:12px; }
+  .brand-mark{
+    width:34px;height:34px; border-radius:8px;
+    background:linear-gradient(135deg, var(--accent), var(--ready));
+    display:flex; align-items:center; justify-content:center;
+    font-family:'JetBrains Mono',monospace; font-weight:600; font-size:13px;
+    color:#111;
+    flex-shrink:0;
+  }
+  .brand-text h1{
+    margin:0; font-family:'Space Grotesk',sans-serif; font-size:19px; font-weight:700;
+    letter-spacing:0.01em;
+  }
+  .brand-text p{
+    margin:1px 0 0; font-size:11.5px; color:var(--text-muted);
+    font-family:'JetBrains Mono',monospace; letter-spacing:0.03em; text-transform:uppercase;
+  }
+
+  .topbar-right{ display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
+
+  .seg-switch{
+    display:flex; background:var(--surface); border:1px solid var(--border-soft);
+    border-radius:99px; padding:3px; gap:2px;
+  }
+  .seg-btn{
+    border:none; background:transparent; color:var(--text-muted);
+    font-family:'JetBrains Mono',monospace; font-size:11.5px; font-weight:500;
+    padding:7px 13px; border-radius:99px; cursor:pointer; letter-spacing:0.02em;
+    display:flex; align-items:center; gap:5px;
+    transition:background .15s, color .15s;
+  }
+  .seg-btn.active{ background:var(--surface-2); color:var(--text); }
+  .seg-btn:not(.active):hover{ color:var(--text); }
+
+  .stat-chips{ display:flex; gap:8px; flex-wrap:wrap; }
+  .chip{
+    display:flex; align-items:center; gap:6px;
+    padding:6px 12px; border-radius:99px;
+    background:var(--surface); border:1px solid var(--border-soft);
+    font-family:'JetBrains Mono',monospace; font-size:12px; color:var(--text-muted);
+    cursor:pointer; user-select:none; transition:border-color .15s, color .15s, background .15s;
+  }
+  .chip.active{ color:var(--text); border-color:var(--border); background:var(--surface-2); }
+  .chip .dot{ width:7px; height:7px; border-radius:50%; flex-shrink:0; }
+  .chip .n{ color:var(--text); font-weight:500; }
+
+  .btn{
+    font-family:'Inter',sans-serif; font-weight:600; font-size:13.5px;
+    border:none; border-radius:10px; padding:10px 16px;
+    cursor:pointer; display:inline-flex; align-items:center; gap:7px;
+    transition:transform .12s ease, filter .12s ease;
+    position:relative;
+  }
+  .btn:active{ transform:scale(0.97); }
+  .btn-primary{ background:var(--accent); color:#101216; }
+  .btn-primary:hover{ filter:brightness(1.08); }
+  .btn-ghost{ background:var(--surface); color:var(--text); border:1px solid var(--border-soft); }
+  .btn-ghost:hover{ border-color:var(--border); }
+  .btn-sm{ padding:7px 12px; font-size:12.5px; border-radius:8px; }
+  .btn-danger-outline{ background:transparent; color:var(--fail); border:1px solid rgba(255,92,92,0.4); }
+  .btn-danger-outline:hover{ background:rgba(255,92,92,0.1); }
+
+  .badge-count{
+    position:absolute; top:-6px; right:-6px;
+    background:var(--fail); color:#fff; font-size:10px; font-weight:700;
+    min-width:17px; height:17px; border-radius:99px;
+    display:flex; align-items:center; justify-content:center; padding:0 4px;
+    font-family:'JetBrains Mono',monospace;
+  }
+
+  main{ padding:28px clamp(16px,4vw,40px) 40px; max-width:1280px; margin:0 auto; }
+
+  .info-banner{
+    display:flex; align-items:center; gap:10px; flex-wrap:wrap;
+    font-size:13px; color:var(--text-muted);
+    padding:12px 16px; border-radius:12px; margin-bottom:14px;
+    background:var(--surface); border:1px solid var(--border-soft); border-left:3px solid var(--accent);
+  }
+  .info-banner strong{ color:var(--text); font-weight:600; }
+  .mw-link{
+    margin-left:auto; display:inline-flex; align-items:center; gap:5px;
+    color:var(--accent); text-decoration:none; font-weight:600; font-size:13px;
+    padding:6px 12px; border:1px solid rgba(124,156,255,0.35); border-radius:99px;
+    background:var(--accent-soft); white-space:nowrap;
+  }
+  .mw-link:hover{ filter:brightness(1.15); }
+
+  .mode-banner{
+    display:flex; align-items:center; gap:8px;
+    font-family:'JetBrains Mono',monospace; font-size:11.5px; color:var(--text-muted);
+    padding:9px 14px; border:1px solid var(--border-soft); border-radius:10px;
+    background:var(--surface); margin-bottom:22px;
+  }
+  .mode-banner.admin{ color:var(--accent); border-color:rgba(124,156,255,0.35); background:var(--accent-soft); }
+
+  .idea-section, .support-section{ margin:0 0 30px; }
+  .idea-section h3, .support-section h3{
+    font-family:'Space Grotesk',sans-serif; font-size:15px; margin:0 0 4px; color:var(--progress);
+    display:flex; align-items:center; gap:8px;
+  }
+  .support-section h3{ color:var(--fail); }
+  .idea-section .sub, .support-section .sub{ font-size:12px; color:var(--text-muted); margin:0 0 12px; }
+  .idea-list, .support-list{ display:flex; flex-direction:column; gap:10px; }
+  .idea-card, .support-card{
+    display:flex; gap:12px; align-items:center;
+    background:var(--surface); border:1px dashed rgba(255,182,39,0.45); border-radius:12px;
+    padding:12px 14px; flex-wrap:wrap;
+  }
+  .support-card{ border:1px dashed rgba(255,92,92,0.4); }
+  .idea-thumb{
+    width:48px; height:48px; border-radius:8px; object-fit:cover;
+    background:var(--surface-2); flex-shrink:0; border:1px solid var(--border-soft);
+  }
+  .idea-thumb-fallback{
+    width:48px; height:48px; border-radius:8px; flex-shrink:0;
+    background:rgba(255,182,39,0.14);
+    display:flex; align-items:center; justify-content:center; font-size:18px;
+  }
+  .support-thumb-fallback{
+    width:48px; height:48px; border-radius:8px; flex-shrink:0;
+    background:rgba(255,92,92,0.14);
+    display:flex; align-items:center; justify-content:center; font-size:18px;
+  }
+  .idea-body, .support-body{ flex:1; min-width:160px; }
+  .idea-title, .support-title{ font-family:'Space Grotesk',sans-serif; font-weight:600; font-size:14px; }
+  .idea-note, .support-note{ font-size:12.5px; color:var(--text-muted); margin-top:2px; line-height:1.4; }
+  .support-time{ font-family:'JetBrains Mono',monospace; font-size:10.5px; color:var(--text-faint); margin-top:4px; }
+  .idea-meta{ display:flex; gap:6px; margin-top:6px; flex-wrap:wrap; }
+  .idea-actions, .support-actions{ display:flex; gap:6px; flex-shrink:0; margin-left:auto; }
+  .idea-waiting{ font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--progress); flex-shrink:0; }
+
+  .empty{
+    margin-top:40px; padding:60px 24px; text-align:center;
+    border:1.5px dashed var(--border); border-radius:var(--radius);
+    color:var(--text-muted);
+  }
+  .empty h2{ font-family:'Space Grotesk',sans-serif; color:var(--text); font-size:20px; margin:0 0 8px; }
+  .empty p{ margin:0 0 20px; font-size:14px; }
+
+  .section-heading{
+    font-family:'Space Grotesk',sans-serif; font-size:15px; color:var(--text); margin:0 0 12px;
+  }
+
+  .grid{
+    display:grid; grid-template-columns:repeat(auto-fill, minmax(240px,1fr));
+    gap:20px; margin-top:6px;
+  }
+
+  .card{
+    position:relative;
+    background:var(--surface);
+    border:1px solid var(--border-soft);
+    border-radius:var(--radius);
+    overflow:hidden;
+    display:flex; flex-direction:column;
+    transition:border-color .15s, transform .15s;
+  }
+  .card:hover{ border-color:var(--border); transform:translateY(-2px); }
+
+  .clip{
+    position:absolute; top:8px; width:18px; height:10px;
+    background:var(--surface-2); border:1px solid var(--border);
+    border-radius:2px; z-index:2;
+  }
+  .clip::after{
+    content:''; position:absolute; inset:2px;
+    border:1px solid var(--border-soft); border-radius:1px;
+  }
+  .clip.left{ left:8px; }
+  .clip.right{ right:8px; }
+
+  .card-media{
+    aspect-ratio:4/3; width:100%;
+    display:flex; align-items:center; justify-content:center;
+    position:relative;
+    border-bottom:1px solid var(--border-soft);
+    background:
+      linear-gradient(135deg, rgba(255,255,255,0.03), transparent 60%),
+      var(--surface-2);
+    overflow:hidden;
+  }
+  .card-media img{ width:100%; height:100%; object-fit:cover; }
+  .swatch-fallback{
+    width:56px; height:56px; border-radius:50%;
+    box-shadow:inset 0 0 0 6px rgba(0,0,0,0.18), 0 0 0 1px rgba(255,255,255,0.06);
+  }
+
+  .status-tag{
+    position:absolute; bottom:8px; left:8px;
+    display:flex; align-items:center; gap:6px;
+    padding:4px 9px 4px 7px; border-radius:99px;
+    font-family:'JetBrains Mono',monospace; font-size:10.5px; font-weight:500;
+    letter-spacing:0.02em;
+    backdrop-filter:blur(6px);
+  }
+  .status-tag .led{ width:6px; height:6px; border-radius:50%; box-shadow:0 0 6px currentColor; }
+  .status-ready{ background:rgba(69,214,196,0.16); color:var(--ready); }
+  .status-progress{ background:rgba(255,182,39,0.16); color:var(--progress); }
+  .status-fail{ background:rgba(255,92,92,0.16); color:var(--fail); }
+
+  .card-body{ padding:14px 14px 12px; display:flex; flex-direction:column; gap:10px; flex:1; }
+  .card-title{
+    font-family:'Space Grotesk',sans-serif; font-size:15.5px; font-weight:600;
+    line-height:1.3; word-break:break-word;
+  }
+  .tag-row{ display:flex; gap:6px; flex-wrap:wrap; }
+  .tag{
+    font-family:'JetBrains Mono',monospace; font-size:10.5px;
+    padding:3px 8px; border-radius:6px;
+    background:var(--surface-2); border:1px solid var(--border-soft); color:var(--text-muted);
+    display:flex; align-items:center; gap:5px;
+  }
+  .tag.idea-flag{ color:var(--progress); border-color:rgba(255,182,39,0.35); }
+  .tag .swatch-dot{ width:8px; height:8px; border-radius:50%; box-shadow:0 0 0 1px rgba(255,255,255,0.15) inset; }
+
+  .card-note{ font-size:12.5px; color:var(--text-muted); line-height:1.4; }
+
+  .card-footer{
+    margin-top:auto; padding-top:10px; border-top:1px solid var(--border-soft);
+    display:flex; align-items:center; justify-content:space-between; gap:8px;
+  }
+  .link-btn{
+    font-size:12px; color:var(--accent); text-decoration:none; display:flex; align-items:center; gap:5px;
+    font-weight:500; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:130px;
+  }
+  .link-btn:hover{ text-decoration:underline; }
+  .link-empty{ font-size:12px; color:var(--text-faint); font-family:'JetBrains Mono',monospace; }
+  .icon-actions{ display:flex; gap:4px; }
+  .icon-btn{
+    width:28px; height:28px; border-radius:7px; border:1px solid transparent;
+    background:transparent; color:var(--text-muted); cursor:pointer;
+    display:flex; align-items:center; justify-content:center;
+    transition:background .12s, color .12s;
+  }
+  .icon-btn:hover{ background:var(--surface-2); color:var(--text); }
+  .icon-btn.del:hover{ color:var(--fail); background:rgba(255,92,92,0.12); }
+
+  /* Modal */
+  .overlay{
+    position:fixed; inset:0; background:rgba(10,10,12,0.6); backdrop-filter:blur(3px);
+    display:flex; align-items:center; justify-content:center; z-index:50;
+    padding:20px; opacity:0; pointer-events:none; transition:opacity .15s ease;
+  }
+  .overlay.open{ opacity:1; pointer-events:auto; }
+  .modal{
+    background:var(--surface); border:1px solid var(--border);
+    border-radius:16px; width:100%; max-width:460px;
+    max-height:90vh; overflow-y:auto;
+    padding:24px;
+    transform:translateY(10px) scale(0.98); transition:transform .15s ease;
+  }
+  .modal.wide{ max-width:560px; }
+  .overlay.open .modal{ transform:none; }
+  .modal h2{
+    font-family:'Space Grotesk',sans-serif; font-size:18px; margin:0 0 16px;
+    display:flex; align-items:center; justify-content:space-between;
+  }
+  .modal h2 .x{ cursor:pointer; color:var(--text-muted); font-size:20px; line-height:1; }
+  .modal p.hint{ margin:0 0 16px; font-size:12px; color:var(--text-muted); line-height:1.5; }
+  .field{ margin-bottom:14px; }
+  .field label{
+    display:block; font-size:11.5px; font-family:'JetBrains Mono',monospace;
+    text-transform:uppercase; letter-spacing:0.04em; color:var(--text-muted); margin-bottom:6px;
+  }
+  .field input[type=text], .field input[type=url], .field select, .field textarea{
+    width:100%; padding:10px 12px; border-radius:9px;
+    background:var(--surface-2); border:1px solid var(--border-soft); color:var(--text);
+    font-family:'Inter',sans-serif; font-size:13.5px; outline:none;
+    transition:border-color .12s;
+  }
+  .field input:focus, .field select:focus, .field textarea:focus{ border-color:var(--accent); }
+  .field textarea{ resize:vertical; min-height:56px; }
+  .two-col{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  .field.admin-only{ border-left:2px solid var(--accent); padding-left:10px; }
+  .field-hint{ font-size:11px; color:var(--text-faint); margin-top:5px; }
+  .field-hint a{ color:var(--accent); }
+
+  .img-input-row{ display:flex; gap:8px; align-items:center; }
+  .img-input-row input[type=text]{ flex:1; }
+  .file-btn{
+    flex-shrink:0; padding:10px 12px; border-radius:9px; border:1px solid var(--border-soft);
+    background:var(--surface-2); color:var(--text-muted); font-size:12px; cursor:pointer;
+    font-family:'JetBrains Mono',monospace;
+  }
+  .file-btn:hover{ color:var(--text); }
+  .img-preview{
+    margin-top:10px; width:100%; aspect-ratio:16/9; border-radius:9px;
+    background:var(--surface-2); border:1.5px dashed var(--border-soft);
+    display:flex; align-items:center; justify-content:center; overflow:hidden;
+    color:var(--text-faint); font-size:11.5px; text-align:center; padding:10px;
+    transition:border-color .12s, background .12s; line-height:1.5;
+  }
+  .img-preview.drag-active{ border-color:var(--accent); background:var(--accent-soft); color:var(--accent); }
+  .img-preview img{ width:100%; height:100%; object-fit:cover; }
+
+  .modal-actions{ display:flex; justify-content:flex-end; gap:8px; margin-top:20px; }
+
+  .toast{
+    position:fixed; bottom:22px; left:50%; transform:translateX(-50%) translateY(20px);
+    background:var(--surface-2); border:1px solid var(--border); color:var(--text);
+    padding:10px 18px; border-radius:99px; font-size:13px; z-index:60;
+    opacity:0; pointer-events:none; transition:opacity .2s, transform .2s;
+    font-family:'JetBrains Mono',monospace; max-width:90vw; text-align:center;
+  }
+  .toast.show{ opacity:1; transform:translateX(-50%) translateY(0); }
+
+  .sr-only{ position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0,0,0,0); }
+
+  footer{
+    max-width:1280px; margin:0 auto; padding:20px clamp(16px,4vw,40px) 50px;
+    display:flex; gap:16px; align-items:center; flex-wrap:wrap;
+    font-size:12px; color:var(--text-faint); border-top:1px solid var(--border-soft);
+  }
+  footer button{
+    background:none; border:none; color:var(--text-muted); cursor:pointer;
+    font-family:'Inter',sans-serif; font-size:12px; text-decoration:underline;
+    padding:0;
+  }
+  footer button:hover{ color:var(--text); }
+
+  .text-modal-body{ font-size:13px; line-height:1.65; color:var(--text-muted); }
+  .text-modal-body h3{ font-family:'Space Grotesk',sans-serif; color:var(--text); font-size:14.5px; margin:18px 0 6px; }
+  .text-modal-body h3:first-child{ margin-top:0; }
+  .text-modal-body p{ margin:0 0 10px; }
+  .text-modal-body ul{ margin:0 0 10px; padding-left:18px; }
+  .text-modal-body li{ margin-bottom:4px; }
+  .text-modal-body .disclaimer{
+    margin-top:16px; padding:10px 12px; border-radius:9px;
+    background:var(--accent-soft); color:var(--accent); font-size:12px;
+  }
+  .filament-table-wrap{
+    overflow-x:auto; border:1px solid var(--border-soft); border-radius:12px;
+  }
+  table.filament-table{ width:100%; border-collapse:collapse; min-width:520px; }
+  table.filament-table th{
+    text-align:left; padding:10px 14px; font-family:'JetBrains Mono',monospace;
+    font-size:10.5px; text-transform:uppercase; letter-spacing:0.04em; color:var(--text-muted);
+    background:var(--surface-2); border-bottom:1px solid var(--border-soft);
+    position:sticky; top:0;
+  }
+  table.filament-table td{
+    padding:11px 14px; border-bottom:1px solid var(--border-soft);
+    font-size:12.5px; color:var(--text-muted); vertical-align:top; line-height:1.5;
+  }
+  table.filament-table tr:last-child td{ border-bottom:none; }
+  table.filament-table tr:hover td{ background:var(--surface-2); }
+  table.filament-table .fname{
+    color:var(--text); font-family:'Space Grotesk',sans-serif; font-weight:600; font-size:13px;
+    white-space:nowrap;
+  }
+  table.filament-table .fuse{ color:var(--ready); }
+
+  @media (max-width:640px){
+    .two-col{ grid-template-columns:1fr; }
+    .brand-text p{ display:none; }
+    .topbar-right{ width:100%; justify-content:space-between; }
+    .mw-link{ margin-left:0; }
+    .idea-actions, .support-actions{ margin-left:0; width:100%; justify-content:flex-end; }
+  }
+
+  :focus-visible{ outline:2px solid var(--accent); outline-offset:2px; }
+
+  @media (prefers-reduced-motion:reduce){
+    *{ transition:none !important; }
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="brand">
+    <div class="brand-mark">3D</div>
+    <div class="brand-text">
+      <h1>Druckplatte</h1>
+      <p>Modell-Tracker</p>
+    </div>
+  </div>
+  <div class="topbar-right">
+    <div class="stat-chips" id="statChips"></div>
+    <div class="seg-switch" id="roleSwitch">
+      <button class="seg-btn" id="submitterBtn" data-role="submitter">Auftrag einreichen</button>
+      <button class="seg-btn" id="adminBtn" data-role="admin">🔒 Admin</button>
+    </div>
+    <button class="btn btn-ghost" id="supportBtn">💬 Support<span class="badge-count" id="supportBadge" style="display:none;"></span></button>
+    <button class="btn btn-primary" id="addBtn">+ Hinzufügen</button>
+  </div>
+</div>
+
+<main>
+  <div class="info-banner">
+    <span>📎 <strong>Nur 3D-Modelle von MakerWorld sind zugelassen.</strong> Bitte immer den passenden MakerWorld-Link angeben.</span>
+    <a class="mw-link" href="https://makerworld.com" target="_blank" rel="noopener">Hier geht’s zur MakerWorld ↗</a>
+  </div>
+  <div class="mode-banner" id="modeBanner"></div>
+
+  <div class="support-section" id="supportSection" style="display:none;">
+    <h3>🎧 Support-Nachrichten</h3>
+    <p class="sub">Löschwünsche und Anfragen von Auftraggebern – nur für dich als Admin sichtbar.</p>
+    <div class="support-list" id="supportList"></div>
+  </div>
+
+  <div class="idea-section" id="ideaSection" style="display:none;">
+    <h3>💡 Ideen-Eingang</h3>
+    <p class="sub">Dinge, die es auf MakerWorld nicht gibt – geht direkt an den Admin zur Prüfung.</p>
+    <div class="idea-list" id="ideaList"></div>
+  </div>
+
+  <div id="emptyState" class="empty" style="display:none;">
+    <h2>Noch keine Modelle auf der Platte</h2>
+    <p id="emptyText">Reich dein erstes Druck-Modell ein – mit MakerWorld-Link, Farbe, Filament und Bild.</p>
+    <button class="btn btn-primary" id="emptyAddBtn">+ Hinzufügen</button>
+  </div>
+
+  <div id="gridHeading" class="section-heading" style="display:none;">📋 Druckaufträge</div>
+  <div class="grid" id="grid"></div>
+</main>
+
+<footer>
+  <span>Druckplatte</span>
+  <button type="button" id="agbLink">AGB</button>
+  <button type="button" id="readmeLink">README</button>
+  <button type="button" id="filamentLink">Filament-Guide</button>
+</footer>
+
+<!-- Modell-/Ideen-Formular -->
+<div class="overlay" id="overlay">
+  <div class="modal">
+    <h2><span id="modalTitle">Auftrag einreichen</span><span class="x" id="closeModal">&times;</span></h2>
+
+    <div class="seg-switch" id="typeSwitch" style="margin-bottom:14px;">
+      <button type="button" class="seg-btn" data-type="model">🧩 MakerWorld-Modell</button>
+      <button type="button" class="seg-btn" data-type="idea">💡 Eigene Idee</button>
+    </div>
+    <p class="hint" id="modalHint"></p>
+
+    <form id="modelForm">
+      <div class="field">
+        <label for="f-name" id="f-name-label">Modell</label>
+        <input type="text" id="f-name" placeholder="z. B. Handyhalterung" required>
+      </div>
+      <div class="field" id="linkField">
+        <label for="f-link" id="f-link-label">Link zum Modell (MakerWorld)</label>
+        <input type="text" id="f-link" placeholder="https://makerworld.com/...">
+        <div class="field-hint" id="linkHint">Muss ein MakerWorld-Link sein – <a href="https://makerworld.com" target="_blank" rel="noopener">makerworld.com</a></div>
+      </div>
+      <div class="two-col">
+        <div class="field">
+          <label for="f-color">Farbe</label>
+          <select id="f-color"></select>
+        </div>
+        <div class="field">
+          <label for="f-filament">Filament</label>
+          <select id="f-filament"></select>
+        </div>
+      </div>
+      <div class="field admin-only" id="statusField">
+        <label for="f-status">Status (nur Admin)</label>
+        <select id="f-status">
+          <option value="ready">Fertigstellung</option>
+          <option value="progress">In Bearbeitung</option>
+          <option value="fail">Geht nicht</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Bild</label>
+        <div class="img-input-row">
+          <input type="text" id="f-image-url" placeholder="Bild-URL einfügen …">
+          <button type="button" class="file-btn" id="fileBtn">Datei wählen</button>
+          <input type="file" id="fileInput" accept="image/*" class="sr-only">
+        </div>
+        <div class="img-preview" id="imgPreview" tabindex="0">Bild hierher ziehen, mit Strg+V einfügen oder Datei wählen</div>
+      </div>
+      <div class="field">
+        <label for="f-note" id="f-note-label">Notiz (optional)</label>
+        <textarea id="f-note" placeholder="z. B. Druckeinstellungen, Wünsche, Anmerkungen …"></textarea>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-ghost" id="cancelBtn">Abbrechen</button>
+        <button type="submit" class="btn btn-primary" id="saveBtn">Speichern</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Support-Formular -->
+<div class="overlay" id="supportOverlay">
+  <div class="modal">
+    <h2><span>💬 Support-Nachricht</span><span class="x" id="closeSupportModal">&times;</span></h2>
+    <p class="hint">Willst du ein Modell wieder löschen, weil du es nicht mehr brauchst, oder hast du eine andere Frage? Schreib es hier – die Nachricht geht direkt an den Admin.</p>
+    <form id="supportForm">
+      <div class="field">
+        <label for="s-model">Betrifft Modell (optional)</label>
+        <select id="s-model">
+          <option value="">Kein bestimmtes Modell</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="s-message">Nachricht</label>
+        <textarea id="s-message" placeholder="z. B. Bitte das Modell löschen, ich brauche es nicht mehr." required></textarea>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-ghost" id="supportCancelBtn">Abbrechen</button>
+        <button type="submit" class="btn btn-primary" id="supportSendBtn">Senden</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- AGB / README -->
+<div class="overlay" id="textOverlay">
+  <div class="modal wide" id="textModal">
+    <h2><span id="textModalTitle">AGB</span><span class="x" id="closeTextModal">&times;</span></h2>
+    <div class="text-modal-body" id="textModalBody"></div>
+    <div class="modal-actions">
+      <button type="button" class="btn btn-primary" id="textCloseBtn2">Schließen</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(function(){
+  const ADMIN_PIN = "2026"; // einfacher Zugangscode fürs Umschalten in den Admin-Modus (siehe Hinweis im Chat)
+  const MAKERWORLD_URL = "https://makerworld.com";
+
+  const COLORS = [
+    {name:"Weiß", hex:"#F2F1ED"}, {name:"Schwarz", hex:"#2B2A2E"}, {name:"Grau", hex:"#8B8B93"},
+    {name:"Rot", hex:"#E4573D"}, {name:"Blau", hex:"#3E7CE0"}, {name:"Grün", hex:"#4CAF7D"},
+    {name:"Gelb", hex:"#F2C744"}, {name:"Orange", hex:"#F2884B"}, {name:"Transparent", hex:"#C9CBCE"},
+    {name:"Silber", hex:"#B8BCC2"}, {name:"Gold", hex:"#D4AF57"}, {name:"Sonstige", hex:"#7C9CFF"}
+  ];
+  const FILAMENTS = ["PLA","PETG","ABS","TPU","ASA","Nylon","PLA+","Resin","Sonstige"];
+  const STATUS = {
+    ready:{label:"Fertigstellung", cls:"status-ready"},
+    progress:{label:"In Bearbeitung", cls:"status-progress"},
+    fail:{label:"Geht nicht", cls:"status-fail"}
+  };
+
+  let models = [];
+  let supportMessages = [];
+  let role = 'submitter'; // 'submitter' | 'admin'
+  let editingId = null;
+  let currentType = 'model'; // 'model' | 'idea'
+  let activeFilter = null;
+  let pendingImage = "";
+
+  const $ = (sel)=>document.querySelector(sel);
+  const grid = $('#grid');
+  const emptyState = $('#emptyState');
+  const gridHeading = $('#gridHeading');
+  const overlay = $('#overlay');
+  const supportOverlay = $('#supportOverlay');
+  const textOverlay = $('#textOverlay');
+  const toastEl = $('#toast');
+
+  function toast(msg){
+    toastEl.textContent = msg;
+    toastEl.classList.add('show');
+    clearTimeout(toast._t);
+    toast._t = setTimeout(()=>toastEl.classList.remove('show'), 2600);
+  }
+
+  function colorHex(name){
+    const c = COLORS.find(c=>c.name===name);
+    return c ? c.hex : '#7C9CFF';
+  }
+  function uid(prefix){ return (prefix||'m') + '_' + Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+  function isMakerWorldLink(url){ return /makerworld\.com/i.test(url||''); }
+  function escapeHtml(s){
+    return (s||'').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+  }
+  function formatTime(ts){
+    try{ return new Date(ts).toLocaleString('de-DE', {day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit'}); }
+    catch(e){ return ''; }
+  }
+
+  async function loadRole(){
+    try{
+      const res = await window.storage.get('role', false);
+      if(res && res.value === 'admin') role = 'admin';
+    }catch(e){}
+  }
+  async function saveRole(){
+    try{ await window.storage.set('role', role, false); }catch(e){}
+  }
+
+  async function loadModels(){
+    try{
+      const res = await window.storage.get('models', true);
+      models = res && res.value ? JSON.parse(res.value) : [];
+    }catch(e){ models = []; }
+  }
+  async function saveModels(){
+    try{
+      const res = await window.storage.set('models', JSON.stringify(models), true);
+      if(!res){ toast('Speichern fehlgeschlagen'); }
+    }catch(e){ toast('Speichern fehlgeschlagen'); }
+  }
+
+  async function loadSupport(){
+    try{
+      const res = await window.storage.get('support', true);
+      supportMessages = res && res.value ? JSON.parse(res.value) : [];
+    }catch(e){ supportMessages = []; }
+  }
+  async function saveSupport(){
+    try{
+      const res = await window.storage.set('support', JSON.stringify(supportMessages), true);
+      if(!res){ toast('Speichern fehlgeschlagen'); }
+    }catch(e){ toast('Speichern fehlgeschlagen'); }
+  }
+
+  function populateSelect(sel, items){
+    sel.innerHTML = items.map(v => `<option value="${v}">${v}</option>`).join('');
+  }
+  populateSelect($('#f-color'), COLORS.map(c=>c.name));
+  populateSelect($('#f-filament'), FILAMENTS);
+
+  function applyRoleUI(){
+    $('#adminBtn').classList.toggle('active', role==='admin');
+    $('#submitterBtn').classList.toggle('active', role==='submitter');
+    $('#statusField').style.display = role==='admin' ? 'block' : 'none';
+    const banner = $('#modeBanner');
+    if(role==='admin'){
+      banner.className = 'mode-banner admin';
+      banner.textContent = '🔒 Admin-Modus – du siehst Ideen & Support-Nachrichten und verwaltest alle Modelle.';
+    }else{
+      banner.className = 'mode-banner';
+      banner.textContent = '📤 Auftraggeber-Modus – du reichst Modelle/Ideen ein, der Admin setzt den Status.';
+    }
+    $('#emptyText').textContent = role==='admin'
+      ? 'Noch keine Modelle auf der Platte.'
+      : 'Reich dein erstes Druck-Modell ein – mit MakerWorld-Link, Farbe, Filament und Bild.';
+  }
+
+  function renderChips(){
+    const taskModels = models.filter(m => !(m.type==='idea' && !m.accepted));
+    const counts = {ready:0, progress:0, fail:0};
+    taskModels.forEach(m=>{ if(counts[m.status]!==undefined) counts[m.status]++; });
+    const pendingIdeas = models.filter(m => m.type==='idea' && !m.accepted).length;
+    const chips = [
+      {key:null, label:'Alle', dot:null, n:taskModels.length},
+      {key:'ready', label:STATUS.ready.label, dot:'var(--ready)', n:counts.ready},
+      {key:'progress', label:STATUS.progress.label, dot:'var(--progress)', n:counts.progress},
+      {key:'fail', label:STATUS.fail.label, dot:'var(--fail)', n:counts.fail},
+    ];
+    let html = chips.map(c => `
+      <button type="button" class="chip ${activeFilter===c.key?'active':''}" data-filter="${c.key ?? ''}">
+        ${c.dot ? `<span class="dot" style="background:${c.dot}"></span>` : ''}
+        ${c.label} <span class="n">${c.n}</span>
+      </button>
+    `).join('');
+    if(pendingIdeas > 0){
+      html += `<button type="button" class="chip" id="ideaChip">💡 Ideen <span class="n">${pendingIdeas}</span></button>`;
+    }
+    if(role==='admin' && supportMessages.length > 0){
+      html += `<button type="button" class="chip" id="supportChip">🎧 Support <span class="n">${supportMessages.length}</span></button>`;
+    }
+    $('#statChips').innerHTML = html;
+    $('#statChips').querySelectorAll('.chip[data-filter]').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        activeFilter = btn.dataset.filter || null;
+        render();
+      });
+    });
+    const ideaChip = $('#ideaChip');
+    if(ideaChip) ideaChip.addEventListener('click', ()=>{
+      const sec = $('#ideaSection'); if(sec) sec.scrollIntoView({behavior:'smooth', block:'start'});
+    });
+    const supportChip = $('#supportChip');
+    if(supportChip) supportChip.addEventListener('click', ()=>{
+      const sec = $('#supportSection'); if(sec) sec.scrollIntoView({behavior:'smooth', block:'start'});
+    });
+
+    // Support-Button-Badge
+    const badge = $('#supportBadge');
+    if(role==='admin' && supportMessages.length > 0){
+      badge.style.display = 'flex';
+      badge.textContent = supportMessages.length;
+    }else{
+      badge.style.display = 'none';
+    }
+  }
+
+  function renderIdeaInbox(){
+    const pending = models.filter(m => m.type==='idea' && !m.accepted);
+    const section = $('#ideaSection');
+    if(pending.length === 0){
+      section.style.display = 'none';
+      $('#ideaList').innerHTML = '';
+      return;
+    }
+    section.style.display = 'block';
+    $('#ideaList').innerHTML = pending.map(m=>{
+      const thumb = m.image
+        ? `<img class="idea-thumb" src="${m.image}" alt="${escapeHtml(m.name)}">`
+        : `<div class="idea-thumb-fallback">💡</div>`;
+      const actions = role==='admin'
+        ? `<div class="idea-actions">
+             <button class="btn btn-primary btn-sm" data-accept="${m.id}">Annehmen</button>
+             <button class="btn btn-danger-outline btn-sm" data-reject="${m.id}">Ablehnen</button>
+           </div>`
+        : `<span class="idea-waiting">wartet auf Admin</span>`;
+      return `
+      <div class="idea-card" data-id="${m.id}">
+        ${thumb}
+        <div class="idea-body">
+          <div class="idea-title">${escapeHtml(m.name)}</div>
+          ${m.note ? `<div class="idea-note">${escapeHtml(m.note)}</div>` : ''}
+          <div class="idea-meta">
+            <span class="tag"><span class="swatch-dot" style="background:${colorHex(m.color)}"></span>${escapeHtml(m.color||'—')}</span>
+            <span class="tag">${escapeHtml(m.filament||'—')}</span>
+          </div>
+        </div>
+        ${actions}
+      </div>`;
+    }).join('');
+
+    if(role==='admin'){
+      $('#ideaList').querySelectorAll('[data-accept]').forEach(btn=>btn.addEventListener('click', ()=>acceptIdea(btn.dataset.accept)));
+      $('#ideaList').querySelectorAll('[data-reject]').forEach(btn=>btn.addEventListener('click', ()=>rejectIdea(btn.dataset.reject)));
+    }
+  }
+
+  function renderSupportInbox(){
+    const section = $('#supportSection');
+    if(role !== 'admin' || supportMessages.length === 0){
+      section.style.display = 'none';
+      $('#supportList').innerHTML = '';
+      return;
+    }
+    section.style.display = 'block';
+    const sorted = [...supportMessages].sort((a,b)=> (b.createdAt||0) - (a.createdAt||0));
+    $('#supportList').innerHTML = sorted.map(s=>{
+      const modelStillExists = s.modelId && models.some(m=>m.id===s.modelId);
+      return `
+      <div class="support-card" data-id="${s.id}">
+        <div class="support-thumb-fallback">💬</div>
+        <div class="support-body">
+          <div class="support-title">${s.modelName ? escapeHtml(s.modelName) : 'Allgemeine Nachricht'}</div>
+          <div class="support-note">${escapeHtml(s.message)}</div>
+          <div class="support-time">${formatTime(s.createdAt)}</div>
+        </div>
+        <div class="support-actions">
+          ${modelStillExists ? `<button class="btn btn-danger-outline btn-sm" data-delmodel="${s.id}">🗑 Modell löschen</button>` : ''}
+          <button class="btn btn-ghost btn-sm" data-resolve="${s.id}">✓ Erledigt</button>
+        </div>
+      </div>`;
+    }).join('');
+
+    $('#supportList').querySelectorAll('[data-delmodel]').forEach(btn=>{
+      btn.addEventListener('click', ()=>resolveSupport(btn.dataset.delmodel, true));
+    });
+    $('#supportList').querySelectorAll('[data-resolve]').forEach(btn=>{
+      btn.addEventListener('click', ()=>resolveSupport(btn.dataset.resolve, false));
+    });
+  }
+
+  async function acceptIdea(id){
+    const m = models.find(x=>x.id===id);
+    if(!m) return;
+    m.accepted = true;
+    m.status = 'progress';
+    await saveModels();
+    render();
+    toast('Idee angenommen – jetzt in Bearbeitung');
+  }
+  async function rejectIdea(id){
+    const m = models.find(x=>x.id===id);
+    if(!m) return;
+    if(!confirm(`Idee "${m.name}" ablehnen und entfernen?`)) return;
+    models = models.filter(x=>x.id!==id);
+    await saveModels();
+    render();
+    toast('Idee abgelehnt');
+  }
+
+  async function resolveSupport(supportId, alsoDeleteModel){
+    const msg = supportMessages.find(s=>s.id===supportId);
+    if(!msg) return;
+    if(alsoDeleteModel && msg.modelId){
+      if(!confirm(`Modell "${msg.modelName}" wirklich löschen?`)) return;
+      models = models.filter(x=>x.id!==msg.modelId);
+      await saveModels();
+    }
+    supportMessages = supportMessages.filter(s=>s.id!==supportId);
+    await saveSupport();
+    render();
+    toast(alsoDeleteModel ? 'Modell gelöscht' : 'Als erledigt markiert');
+  }
+
+  function render(){
+    renderChips();
+    renderSupportInbox();
+    renderIdeaInbox();
+
+    const taskModels = models.filter(m => !(m.type==='idea' && !m.accepted));
+    const list = activeFilter ? taskModels.filter(m=>m.status===activeFilter) : taskModels;
+
+    emptyState.style.display = taskModels.length===0 ? 'block' : 'none';
+    grid.style.display = taskModels.length===0 ? 'none' : 'grid';
+    gridHeading.style.display = taskModels.length===0 ? 'none' : 'block';
+
+    grid.innerHTML = list.map(m=>{
+      const st = STATUS[m.status] || STATUS.progress;
+      const hex = colorHex(m.color);
+      const media = m.image
+        ? `<img src="${m.image}" alt="${escapeHtml(m.name)}">`
+        : `<div class="swatch-fallback" style="background:${hex}"></div>`;
+      const linkHtml = m.link
+        ? `<a class="link-btn" href="${escapeHtml(m.link)}" target="_blank" rel="noopener">↗ ${escapeHtml(m.link.replace(/^https?:\/\//,''))}</a>`
+        : `<span class="link-empty">kein Link</span>`;
+      const ideaTag = m.type==='idea' ? `<span class="tag idea-flag">💡 Idee</span>` : '';
+      const actions = role==='admin'
+        ? `<div class="icon-actions">
+             <button class="icon-btn edit" title="Bearbeiten" aria-label="Bearbeiten">✎</button>
+             <button class="icon-btn del" title="Löschen" aria-label="Löschen">🗑</button>
+           </div>`
+        : '';
+      return `
+      <div class="card" data-id="${m.id}">
+        <div class="clip left"></div>
+        <div class="clip right"></div>
+        <div class="card-media">
+          ${media}
+          <div class="status-tag ${st.cls}"><span class="led"></span>${st.label}</div>
+        </div>
+        <div class="card-body">
+          <div class="card-title">${escapeHtml(m.name)}</div>
+          <div class="tag-row">
+            ${ideaTag}
+            <span class="tag"><span class="swatch-dot" style="background:${hex}"></span>${escapeHtml(m.color||'—')}</span>
+            <span class="tag">${escapeHtml(m.filament||'—')}</span>
+          </div>
+          ${m.note ? `<div class="card-note">${escapeHtml(m.note)}</div>` : ''}
+          <div class="card-footer">
+            ${linkHtml}
+            ${actions}
+          </div>
+        </div>
+      </div>`;
+    }).join('');
+
+    if(role==='admin'){
+      grid.querySelectorAll('.card').forEach(card=>{
+        const id = card.dataset.id;
+        card.querySelector('.edit').addEventListener('click', ()=>openModal(id));
+        card.querySelector('.del').addEventListener('click', ()=>deleteModel(id));
+      });
+    }
+
+    // Modell-Auswahl im Support-Formular aktuell halten
+    const sSel = $('#s-model');
+    const prevVal = sSel.value;
+    sSel.innerHTML = '<option value="">Kein bestimmtes Modell</option>' +
+      taskModels.map(m=>`<option value="${m.id}">${escapeHtml(m.name)}</option>`).join('');
+    if(taskModels.some(m=>m.id===prevVal)) sSel.value = prevVal;
+  }
+
+  function resetForm(){
+    $('#f-name').value = '';
+    $('#f-link').value = '';
+    $('#f-color').value = COLORS[0].name;
+    $('#f-filament').value = FILAMENTS[0];
+    $('#f-status').value = 'progress';
+    $('#f-note').value = '';
+    $('#f-image-url').value = '';
+    pendingImage = '';
+    updatePreview();
+  }
+
+  function updatePreview(){
+    const prev = $('#imgPreview');
+    if(pendingImage){
+      prev.innerHTML = `<img src="${pendingImage}" alt="Vorschau">`;
+    }else{
+      prev.textContent = 'Bild hierher ziehen, mit Strg+V einfügen oder Datei wählen';
+    }
+  }
+
+  function applyTypeUI(){
+    $('#typeSwitch').querySelectorAll('.seg-btn').forEach(b=>{
+      b.classList.toggle('active', b.dataset.type === currentType);
+    });
+    if(currentType === 'model'){
+      $('#f-name-label').textContent = 'Modell';
+      $('#f-name').placeholder = 'z. B. Handyhalterung';
+      $('#linkField').style.display = 'block';
+      $('#f-link-label').textContent = 'Link zum Modell (MakerWorld)';
+      $('#f-link').placeholder = 'https://makerworld.com/...';
+      $('#f-note-label').textContent = 'Notiz (optional)';
+      $('#modalHint').textContent = role==='admin'
+        ? 'Nur Modelle von MakerWorld – Link erforderlich.'
+        : 'Nur Modelle von MakerWorld sind zugelassen. Der Status wird vom Admin gesetzt.';
+    }else{
+      $('#f-name-label').textContent = 'Idee';
+      $('#f-name').placeholder = 'z. B. Kabelhalter für Schreibtisch';
+      $('#linkField').style.display = 'block';
+      $('#f-link-label').textContent = 'Referenz-Link (optional)';
+      $('#f-link').placeholder = 'https://... (optional, falls vorhanden)';
+      $('#f-note-label').textContent = 'Beschreibung';
+      $('#modalHint').textContent = 'Für Dinge, die es auf MakerWorld nicht gibt. Geht direkt an den Admin – der kann die Idee annehmen und als Aufgabe mit Status einplanen.';
+    }
+  }
+  $('#typeSwitch').addEventListener('click', (e)=>{
+    const btn = e.target.closest('.seg-btn');
+    if(!btn) return;
+    currentType = btn.dataset.type;
+    applyTypeUI();
+  });
+
+  function openModal(id){
+    editingId = id || null;
+    resetForm();
+    const isNew = !id;
+    $('#typeSwitch').style.display = isNew ? 'flex' : 'none';
+
+    if(id){
+      const m = models.find(x=>x.id===id);
+      if(m && role==='admin'){
+        currentType = m.type || 'model';
+        $('#modalTitle').textContent = 'Bearbeiten';
+        $('#f-name').value = m.name || '';
+        $('#f-link').value = m.link || '';
+        $('#f-color').value = m.color || COLORS[0].name;
+        $('#f-filament').value = m.filament || FILAMENTS[0];
+        $('#f-status').value = m.status || 'progress';
+        $('#f-note').value = m.note || '';
+        pendingImage = m.image || '';
+        if(m.image && m.image.startsWith('http')) $('#f-image-url').value = m.image;
+        updatePreview();
+      }
+    }else{
+      currentType = 'model';
+      $('#modalTitle').textContent = role==='admin' ? 'Hinzufügen' : 'Einreichen';
+    }
+    applyTypeUI();
+    overlay.classList.add('open');
+    setTimeout(()=>$('#f-name').focus(), 80);
+  }
+  function closeModalFn(){ overlay.classList.remove('open'); editingId = null; }
+
+  async function deleteModel(id){
+    const m = models.find(x=>x.id===id);
+    if(!m) return;
+    if(!confirm(`"${m.name}" wirklich löschen?`)) return;
+    models = models.filter(x=>x.id!==id);
+    await saveModels();
+    render();
+    toast('Gelöscht');
+  }
+
+  function resizeImageFromFile(file){
+    return new Promise((resolve, reject)=>{
+      if(!file || !file.type || !file.type.startsWith('image/')){ reject(new Error('Kein Bild')); return; }
+      const reader = new FileReader();
+      reader.onload = (e)=>{
+        const img = new Image();
+        img.onload = ()=>{
+          const maxW = 700;
+          const scale = Math.min(1, maxW / img.width);
+          const w = Math.round(img.width * scale);
+          const h = Math.round(img.height * scale);
+          const canvas = document.createElement('canvas');
+          canvas.width = w; canvas.height = h;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, w, h);
+          resolve(canvas.toDataURL('image/jpeg', 0.75));
+        };
+        img.onerror = reject;
+        img.src = e.target.result;
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  }
+
+  // Rollen umschalten
+  async function trySwitchRole(target){
+    if(target === role) return;
+    if(target === 'admin'){
+      const code = prompt('Admin-Code eingeben:');
+      if(code === null) return;
+      if(code !== ADMIN_PIN){ toast('Falscher Code'); return; }
+    }
+    role = target;
+    await saveRole();
+    applyRoleUI();
+    render();
+    toast(role==='admin' ? 'Admin-Modus aktiv' : 'Auftraggeber-Modus aktiv');
+  }
+  $('#adminBtn').addEventListener('click', ()=>trySwitchRole('admin'));
+  $('#submitterBtn').addEventListener('click', ()=>trySwitchRole('submitter'));
+
+  // Modell-Formular Events
+  $('#addBtn').addEventListener('click', ()=>openModal(null));
+  $('#emptyAddBtn').addEventListener('click', ()=>openModal(null));
+  $('#closeModal').addEventListener('click', closeModalFn);
+  $('#cancelBtn').addEventListener('click', closeModalFn);
+  overlay.addEventListener('click', (e)=>{ if(e.target === overlay) closeModalFn(); });
+
+  $('#fileBtn').addEventListener('click', ()=>$('#fileInput').click());
+  $('#fileInput').addEventListener('change', async (e)=>{
+    const file = e.target.files[0];
+    if(!file) return;
+    try{
+      pendingImage = await resizeImageFromFile(file);
+      $('#f-image-url').value = '';
+      updatePreview();
+    }catch(err){ toast('Bild konnte nicht geladen werden'); }
+  });
+  $('#f-image-url').addEventListener('input', (e)=>{
+    pendingImage = e.target.value.trim();
+    updatePreview();
+  });
+
+  // Drag & Drop auf den Bild-Slot
+  const imgPreviewEl = $('#imgPreview');
+  ['dragenter','dragover'].forEach(evt=>{
+    imgPreviewEl.addEventListener(evt, (e)=>{
+      e.preventDefault(); e.stopPropagation();
+      imgPreviewEl.classList.add('drag-active');
+    });
+  });
+  ['dragleave','dragend'].forEach(evt=>{
+    imgPreviewEl.addEventListener(evt, (e)=>{
+      e.preventDefault(); e.stopPropagation();
+      imgPreviewEl.classList.remove('drag-active');
+    });
+  });
+  imgPreviewEl.addEventListener('drop', async (e)=>{
+    e.preventDefault(); e.stopPropagation();
+    imgPreviewEl.classList.remove('drag-active');
+    const file = e.dataTransfer.files && e.dataTransfer.files[0];
+    if(file){
+      try{
+        pendingImage = await resizeImageFromFile(file);
+        $('#f-image-url').value = '';
+        updatePreview();
+        return;
+      }catch(err){ /* fällt durch auf URL-Versuch */ }
+    }
+    const uriData = e.dataTransfer.getData('text/uri-list') || e.dataTransfer.getData('text/plain');
+    if(uriData && /^https?:\/\//i.test(uriData.trim())){
+      pendingImage = uriData.trim();
+      $('#f-image-url').value = pendingImage;
+      updatePreview();
+    }else{
+      toast('Kein gültiges Bild erkannt');
+    }
+  });
+
+  // Einfügen per Strg+V, wenn das Modell-Formular offen ist
+  document.addEventListener('paste', async (e)=>{
+    if(!overlay.classList.contains('open')) return;
+    const items = e.clipboardData && e.clipboardData.items;
+    if(!items) return;
+    for(const item of items){
+      if(item.type && item.type.startsWith('image/')){
+        e.preventDefault();
+        const file = item.getAsFile();
+        try{
+          pendingImage = await resizeImageFromFile(file);
+          $('#f-image-url').value = '';
+          updatePreview();
+          toast('Bild eingefügt');
+        }catch(err){ toast('Bild konnte nicht eingefügt werden'); }
+        return;
+      }
+    }
+  });
+
+  $('#modelForm').addEventListener('submit', async (e)=>{
+    e.preventDefault();
+    const name = $('#f-name').value.trim();
+    if(!name){ toast('Bitte einen Namen eingeben'); return; }
+    const link = $('#f-link').value.trim();
+
+    if(currentType === 'model' && !isMakerWorldLink(link)){
+      toast('Bitte einen gültigen MakerWorld-Link angeben');
+      return;
+    }
+
+    const data = {
+      type: currentType,
+      name,
+      link,
+      color: $('#f-color').value,
+      filament: $('#f-filament').value,
+      note: $('#f-note').value.trim(),
+      image: pendingImage
+    };
+    if(role==='admin'){ data.status = $('#f-status').value; }
+
+    const saveBtn = $('#saveBtn');
+    saveBtn.disabled = true; saveBtn.textContent = 'Speichert …';
+
+    if(editingId && role==='admin'){
+      const idx = models.findIndex(m=>m.id===editingId);
+      if(idx>-1) models[idx] = {...models[idx], ...data};
+    }else if(currentType === 'idea' && role !== 'admin'){
+      models.unshift({id: uid(), accepted:false, status:null, ...data});
+    }else{
+      models.unshift({id: uid(), status: data.status || 'progress', accepted:true, ...data});
+    }
+
+    await saveModels();
+    saveBtn.disabled = false; saveBtn.textContent = 'Speichern';
+    closeModalFn();
+    render();
+    toast(currentType==='idea' && role!=='admin' ? 'Idee an Admin gesendet' : (role==='admin' ? 'Gespeichert' : 'Auftrag eingereicht'));
+  });
+
+  // Support-Formular
+  function openSupportModal(){
+    $('#s-message').value = '';
+    $('#s-model').value = '';
+    supportOverlay.classList.add('open');
+    setTimeout(()=>$('#s-message').focus(), 80);
+  }
+  function closeSupportModal(){ supportOverlay.classList.remove('open'); }
+  $('#supportBtn').addEventListener('click', openSupportModal);
+  $('#closeSupportModal').addEventListener('click', closeSupportModal);
+  $('#supportCancelBtn').addEventListener('click', closeSupportModal);
+  supportOverlay.addEventListener('click', (e)=>{ if(e.target === supportOverlay) closeSupportModal(); });
+
+  $('#supportForm').addEventListener('submit', async (e)=>{
+    e.preventDefault();
+    const message = $('#s-message').value.trim();
+    if(!message){ toast('Bitte eine Nachricht eingeben'); return; }
+    const modelId = $('#s-model').value || null;
+    const modelObj = modelId ? models.find(m=>m.id===modelId) : null;
+
+    const btn = $('#supportSendBtn');
+    btn.disabled = true; btn.textContent = 'Sendet …';
+    supportMessages.push({
+      id: uid('s'),
+      modelId: modelObj ? modelObj.id : null,
+      modelName: modelObj ? modelObj.name : null,
+      message,
+      createdAt: Date.now()
+    });
+    await saveSupport();
+    btn.disabled = false; btn.textContent = 'Senden';
+    closeSupportModal();
+    render();
+    toast('Nachricht an Admin gesendet');
+  });
+
+  // AGB / README
+  const AGB_HTML = `
+    <h3>1. Geltungsbereich</h3>
+    <p>Diese Bedingungen gelten für die Nutzung von „Druckplatte“ als internes Tool zur Verwaltung von 3D-Druck-Aufträgen zwischen Auftraggeber:innen und Admin.</p>
+    <h3>2. Zulässige Modelle</h3>
+    <p>Es dürfen ausschließlich 3D-Modelle eingereicht werden, die auf MakerWorld (makerworld.com) verfügbar sind. Eigene Ideen, die dort nicht existieren, können separat als Idee eingereicht und vom Admin geprüft werden.</p>
+    <h3>3. Nutzung & Pflichten</h3>
+    <ul>
+      <li>Eingereichte Angaben (Modell, Farbe, Filament, Bild) sollen wahrheitsgemäß und vollständig sein.</li>
+      <li>Der Status eines Auftrags wird ausschließlich vom Admin gepflegt.</li>
+      <li>Löschwünsche werden über die Support-Funktion an den Admin gerichtet, nicht eigenständig umgesetzt.</li>
+    </ul>
+    <h3>4. Haftung</h3>
+    <p>Die Nutzung erfolgt ohne Gewähr auf ständige Verfügbarkeit. Für Druckergebnisse, Materialschäden oder Zeitverzug wird keine Haftung übernommen.</p>
+    <h3>5. Datenspeicherung</h3>
+    <p>Eingereichte Daten (Modelle, Ideen, Support-Nachrichten, Bilder) werden für alle Nutzer:innen dieses Tools sichtbar gespeichert.</p>
+    <h3>6. Änderungen</h3>
+    <p>Diese Bedingungen können jederzeit durch den Admin angepasst werden.</p>
+    <div class="disclaimer">Hinweis: Dies ist eine allgemeine Vorlage ohne rechtliche Prüfung, keine Rechtsberatung. Bitte vor produktivem Einsatz individuell anpassen bzw. rechtlich prüfen lassen.</div>
+  `;
+  const README_HTML = `
+    <h3>Was ist Druckplatte?</h3>
+    <p>Ein kleines Tool, um 3D-Druck-Aufträge zu sammeln, zu verfolgen und zu verwalten – von der Einreichung bis zur Fertigstellung.</p>
+    <h3>Rollen</h3>
+    <ul>
+      <li><strong>Auftraggeber:in</strong> – reicht Modelle (von MakerWorld) oder eigene Ideen ein, sieht den Status, kann aber Status nicht selbst ändern.</li>
+      <li><strong>Admin</strong> – setzt Status (Fertigstellung / In Bearbeitung / Geht nicht), bearbeitet/löscht Modelle, nimmt Ideen an oder lehnt sie ab, bearbeitet Support-Nachrichten. Zugang über den „🔒 Admin“-Button oben rechts mit Code.</li>
+    </ul>
+    <h3>MakerWorld-Pflicht</h3>
+    <p>Nur Modelle von MakerWorld sind zulässig – der Link wird beim Einreichen geprüft. Dinge, die es dort nicht gibt, können als „Eigene Idee“ eingereicht werden.</p>
+    <h3>Ideen-Eingang</h3>
+    <p>Eigene Ideen landen direkt beim Admin. Wird eine Idee angenommen, wird daraus automatisch ein normaler Druckauftrag mit Status „In Bearbeitung“.</p>
+    <h3>Support</h3>
+    <p>Über den „💬 Support“-Button lässt sich eine Nachricht an den Admin schicken, z. B. um ein Modell wieder löschen zu lassen. Der Admin sieht alle Nachrichten im Bereich „Support-Nachrichten“ und kann das betroffene Modell direkt von dort löschen.</p>
+    <h3>Bilder hinzufügen</h3>
+    <p>Im Bild-Feld eines Modells kannst du wahlweise eine Bild-URL eintragen, eine Datei auswählen, ein Bild per Drag &amp; Drop in das Vorschaufeld ziehen oder ein kopiertes Bild direkt mit Strg+V einfügen.</p>
+    <h3>Speicherung</h3>
+    <p>Alle Modelle, Ideen und Support-Nachrichten werden geteilt gespeichert – alle Nutzer:innen dieses Tools sehen dieselben Daten.</p>
+  `;
+  const FILAMENT_INFO = [
+    {name:"PLA", icon:"🌱", desc:"Leicht zu drucken, kaum Verzug, aus Maisstärke – die Einsteiger-Empfehlung. Nicht hitzebeständig (erweicht ab ca. 55–60 °C) und eher spröde.", uses:"Deko, Prototypen, Spielzeug, Figuren – alles ohne große mechanische oder thermische Belastung"},
+    {name:"PLA+", icon:"🌱+", desc:"Verbesserte PLA-Rezeptur, zäher und schlagfester als Standard-PLA, dabei genauso einfach zu drucken.", uses:"Funktionsteile mit etwas mehr Belastung, Halterungen, Werkzeuggriffe"},
+    {name:"PETG", icon:"💧", desc:"Widerstandsfähig, schlagfest, feuchtigkeitsbeständig, chemisch recht beständig. Etwas anspruchsvoller im Druck (neigt zu Fäden) als PLA.", uses:"Behälter, Outdoor-Teile, mechanisch beanspruchte Teile, Teile mit Feuchtigkeitskontakt"},
+    {name:"ABS", icon:"🔥", desc:"Hitzebeständiger und schlagfester als PLA, aber anspruchsvoll im Druck (Verzug, braucht beheiztes Bett/geschlossenen Bauraum, riecht beim Drucken).", uses:"Gehäuse, Autoteile, mechanisch und thermisch belastete Bauteile"},
+    {name:"ASA", icon:"☀️", desc:"Ähnliche Eigenschaften wie ABS, zusätzlich UV- und witterungsbeständig. Ähnlich anspruchsvoll im Druck.", uses:"Teile für den Außenbereich, Gartenmöbel-Halterungen, Dinge mit Sonnenkontakt"},
+    {name:"TPU", icon:"🧦", desc:"Flexibles, gummiartiges Filament in verschiedenen Härtegraden. Druckt sich langsamer, empfindlich bei hohen Druckgeschwindigkeiten.", uses:"Handyhüllen, Dichtungen, Scharniere, Anti-Rutsch-Füße, flexible Halterungen"},
+    {name:"Nylon (PA)", icon:"⚙️", desc:"Sehr robust, abriebfest und zäh, aber anspruchsvoll: zieht Feuchtigkeit aus der Luft und muss vor dem Druck oft getrocknet werden.", uses:"Zahnräder, Scharniere, stark beanspruchte Funktions- und Maschinenteile"},
+    {name:"Resin", icon:"🧪", desc:"Flüssigharz für SLA/DLP-Drucker (kein FDM-Filament) – sehr hohe Detailgenauigkeit und glatte Oberfläche, aber spröder und im flüssigen Zustand reizend/giftig (Handschuhe & Belüftung nötig).", uses:"Miniaturen, Schmuck, Zahnmodelle, Teile mit sehr feinen Details"},
+    {name:"Sonstige", icon:"✨", desc:"Sammelkategorie für Spezialfilamente wie Holz-, Carbon-, Glow-in-the-dark- oder Metall-Composites. Eigenschaften hängen stark vom jeweiligen Zusatzstoff ab.", uses:"Optische/haptische Spezialeffekte, individuell je nach Filament nachlesen"}
+  ];
+  function buildFilamentTable(){
+    const rows = FILAMENT_INFO.map(f => `
+      <tr>
+        <td class="fname">${f.icon} ${escapeHtml(f.name)}</td>
+        <td>${escapeHtml(f.desc)}</td>
+        <td class="fuse">${escapeHtml(f.uses)}</td>
+      </tr>`).join('');
+    return `
+      <p>Übersicht der Filamente aus dem Auswahlmenü – Eigenschaften und wofür sie sich eignen.</p>
+      <div class="filament-table-wrap">
+        <table class="filament-table">
+          <thead><tr><th>Filament</th><th>Eigenschaften</th><th>Geeignet für</th></tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+      <div class="disclaimer">Allgemeine Richtwerte – Herstellerangaben zum jeweiligen Filament (z. B. Drucktemperatur) haben immer Vorrang.</div>
+    `;
+  }
+
+  function openTextModal(type){
+    if(type==='agb'){ $('#textModalTitle').textContent = 'AGB'; $('#textModalBody').innerHTML = AGB_HTML; }
+    else if(type==='filament'){ $('#textModalTitle').textContent = 'Filament-Guide'; $('#textModalBody').innerHTML = buildFilamentTable(); }
+    else{ $('#textModalTitle').textContent = 'README'; $('#textModalBody').innerHTML = README_HTML; }
+    textOverlay.classList.add('open');
+  }
+  function closeTextModal(){ textOverlay.classList.remove('open'); }
+  $('#agbLink').addEventListener('click', ()=>openTextModal('agb'));
+  $('#readmeLink').addEventListener('click', ()=>openTextModal('readme'));
+  $('#filamentLink').addEventListener('click', ()=>openTextModal('filament'));
+  $('#closeTextModal').addEventListener('click', closeTextModal);
+  $('#textCloseBtn2').addEventListener('click', closeTextModal);
+  textOverlay.addEventListener('click', (e)=>{ if(e.target === textOverlay) closeTextModal(); });
+
+  // Escape schließt jedes offene Overlay
+  document.addEventListener('keydown', (e)=>{
+    if(e.key !== 'Escape') return;
+    if(overlay.classList.contains('open')) closeModalFn();
+    if(supportOverlay.classList.contains('open')) closeSupportModal();
+    if(textOverlay.classList.contains('open')) closeTextModal();
+  });
+
+  (async function init(){
+    await loadRole();
+    await loadModels();
+    await loadSupport();
+    applyRoleUI();
+    render();
+  })();
+})();
+</script>
+</body>
+</html>
