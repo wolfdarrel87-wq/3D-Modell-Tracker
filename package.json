@@ -10,7 +10,7 @@
   "scripts": {
     "start": "node server/index.js",
     "preview": "node scripts/preview.js",
-    "test": "node --test \"test/*.test.js\"",
+    "test": "node --test --test-force-exit \"test/*.test.js\"",
     "test:e2e": "node test/e2e/run-e2e.js",
     "migrate:ideas": "node scripts/migrate-idea-dp.js",
     "hash-password": "node scripts/hash-password.js"

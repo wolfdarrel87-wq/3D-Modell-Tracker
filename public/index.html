@@ -413,6 +413,170 @@
   @media (prefers-reduced-motion:reduce){
     *{ transition:none !important; }
   }
+
+  /* ---------- Ergänzungen: Anmeldung, Live-Bereiche, DP-Nummern, Geräte ---------- */
+  [hidden]{ display:none !important; }
+  .field input[type=email], .field input[type=password], .field input[type=number]{
+    width:100%; padding:10px 12px; border-radius:9px;
+    background:var(--surface-2); border:1px solid var(--border-soft); color:var(--text);
+    font-family:'Inter',sans-serif; font-size:13.5px; outline:none; transition:border-color .12s;
+  }
+  .check-field label.check{
+    display:flex; align-items:center; gap:9px; cursor:pointer;
+    font-family:'Inter',sans-serif; font-size:13.5px; text-transform:none; letter-spacing:0; color:var(--text);
+  }
+  .check-field input[type=checkbox]{ width:17px; height:17px; accent-color:var(--accent); flex-shrink:0; }
+
+  .preview-flag{
+    font-family:'JetBrains Mono',monospace; font-size:10px; font-weight:600; letter-spacing:0.06em;
+    padding:3px 7px; border-radius:6px; color:var(--progress);
+    background:rgba(255,182,39,0.12); border:1px solid rgba(255,182,39,0.35);
+  }
+  .brand-text h1{ display:flex; align-items:center; gap:8px; }
+
+  .gate{
+    position:fixed; inset:0; z-index:90; display:flex; align-items:center; justify-content:center;
+    padding:20px; overflow-y:auto;
+    background:
+      radial-gradient(circle at 1px 1px, rgba(255,255,255,0.055) 1px, transparent 0) 0 0/24px 24px,
+      var(--bg);
+  }
+  .gate-card{
+    width:100%; max-width:410px; background:var(--surface); border:1px solid var(--border);
+    border-radius:16px; padding:26px 22px; margin:auto;
+  }
+  .gate-brand{ display:flex; align-items:center; gap:12px; margin-bottom:20px; }
+  .gate-card h2{ font-family:'Space Grotesk',sans-serif; font-size:18px; margin:0 0 6px; }
+  .gate-card .btn{ width:100%; justify-content:center; margin-top:4px; }
+  .gate-card .btn + .btn{ margin-top:8px; }
+  .code-input{ font-family:'JetBrains Mono',monospace !important; font-size:22px !important; letter-spacing:0.35em; text-align:center; }
+  .gate-error{ color:var(--fail); font-size:12.5px; min-height:18px; margin-top:10px; line-height:1.4; }
+  .gate-note{ font-size:12px; color:var(--text-muted); margin:12px 0 0; line-height:1.55; }
+  .gate-note a{ color:var(--accent); }
+
+  .live-grid{ display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:20px; margin-bottom:30px; align-items:start; }
+  @media (max-width:900px){ .live-grid{ grid-template-columns:minmax(0,1fr); } }
+  .panel{ background:var(--surface); border:1px solid var(--border-soft); border-radius:var(--radius); padding:16px; min-width:0; }
+  .panel h3{
+    font-family:'Space Grotesk',sans-serif; font-size:15px; margin:0 0 12px;
+    display:flex; align-items:center; justify-content:space-between; gap:8px; flex-wrap:wrap;
+  }
+  .live-indicator{ display:inline-flex; align-items:center; gap:6px; font-family:'JetBrains Mono',monospace; font-size:10.5px; color:var(--text-muted); font-weight:500; }
+  .live-dot{ width:7px; height:7px; border-radius:50%; background:var(--ready); box-shadow:0 0 6px var(--ready); }
+  .queue-total{ font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--text-muted); font-weight:500; }
+
+  .print-card{ display:flex; gap:14px; align-items:flex-start; min-width:0; }
+  .print-thumb, .q-thumb{
+    border-radius:10px; flex-shrink:0; overflow:hidden; background:var(--surface-2);
+    border:1px solid var(--border-soft); display:flex; align-items:center; justify-content:center;
+  }
+  .print-thumb{ width:76px; height:76px; font-size:26px; }
+  .q-thumb{ width:40px; height:40px; border-radius:8px; font-size:16px; }
+  .print-thumb img, .q-thumb img{ width:100%; height:100%; object-fit:cover; }
+  .print-thumb .swatch-fallback{ width:34px; height:34px; }
+  .q-thumb .swatch-fallback{ width:20px; height:20px; box-shadow:none; }
+  .print-body{ flex:1; min-width:0; }
+  .print-label{ font-family:'JetBrains Mono',monospace; font-size:10.5px; text-transform:uppercase; letter-spacing:0.05em; color:var(--text-muted); }
+  .print-label.own{ color:var(--accent); }
+  .print-title{ font-family:'Space Grotesk',sans-serif; font-weight:600; font-size:16px; margin:2px 0 6px; overflow-wrap:anywhere; }
+  .progress{ height:8px; border-radius:99px; background:var(--surface-2); overflow:hidden; margin:12px 0 7px; }
+  .progress > span{ display:block; height:100%; border-radius:99px; background:linear-gradient(90deg, var(--progress), var(--ready)); }
+  .print-meta{ display:flex; flex-wrap:wrap; gap:4px 14px; font-family:'JetBrains Mono',monospace; font-size:11.5px; color:var(--text-muted); }
+  .print-meta strong{ color:var(--text); font-weight:500; }
+  .print-anon{ display:flex; gap:14px; align-items:flex-start; }
+  .anon-icon{
+    width:56px; height:56px; border-radius:12px; flex-shrink:0; font-size:24px;
+    display:flex; align-items:center; justify-content:center; background:var(--surface-2); border:1px dashed var(--border);
+  }
+  .muted{ color:var(--text-muted); font-size:13px; line-height:1.45; }
+  .owner-line{ font-size:12px; color:var(--text-muted); margin:2px 0 6px; overflow-wrap:anywhere; }
+
+  .admin-print-form{ display:flex; flex-wrap:wrap; gap:8px; align-items:flex-end; margin-top:12px; padding-top:12px; border-top:1px solid var(--border-soft); }
+  .admin-print-form .field{ margin:0; width:110px; }
+  .admin-print-form .field label{ font-size:10px; }
+  .admin-print-form .btns{ display:flex; gap:6px; flex-wrap:wrap; }
+
+  .dp-block{ display:flex; flex-direction:column; gap:1px; }
+  .dp-label{ font-family:'JetBrains Mono',monospace; font-size:9.5px; text-transform:uppercase; letter-spacing:0.07em; color:var(--text-faint); }
+  .dp-ref{ font-family:'JetBrains Mono',monospace; font-size:12.5px; color:var(--accent); letter-spacing:0.02em; overflow-wrap:anywhere; }
+  .dp-inline{ font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--accent); }
+
+  .queue-summary{
+    display:flex; flex-wrap:wrap; align-items:baseline; gap:4px 14px;
+    padding:12px 14px; margin-bottom:12px; border-radius:12px;
+    background:var(--accent-soft); border:1px solid rgba(124,156,255,0.35);
+  }
+  .queue-summary strong{ font-family:'Space Grotesk',sans-serif; font-size:18px; color:var(--text); }
+  .queue-summary span{ color:var(--accent); font-size:13px; font-weight:600; }
+  .queue-summary.neutral{ background:var(--surface-2); border-color:var(--border-soft); color:var(--text-muted); font-size:13px; }
+  .queue-list{ list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:8px; }
+  .q-item{
+    display:flex; align-items:center; gap:12px; min-width:0;
+    padding:10px 12px; border-radius:12px; background:var(--surface-2); border:1px solid var(--border-soft);
+  }
+  .q-pos{
+    min-width:34px; height:34px; padding:0 6px; border-radius:9px; flex-shrink:0;
+    display:flex; align-items:center; justify-content:center;
+    font-family:'JetBrains Mono',monospace; font-weight:600; font-size:12.5px;
+    background:var(--surface); border:1px solid var(--border);
+  }
+  .q-item.private{ border-style:dashed; background:transparent; }
+  .q-item.private .q-title{ color:var(--text-muted); font-weight:500; }
+  .q-item.own{ border-color:rgba(124,156,255,0.55); background:var(--accent-soft); }
+  .q-item.own .q-pos{ background:var(--accent); border-color:var(--accent); color:#101216; }
+  .q-body{ flex:1; min-width:0; }
+  .q-title{ font-family:'Space Grotesk',sans-serif; font-weight:600; font-size:14px; overflow-wrap:anywhere; }
+  .q-sub{ display:flex; flex-wrap:wrap; align-items:center; gap:4px 10px; margin-top:3px; font-size:12px; color:var(--text-muted); }
+  .q-sub .link-btn{ max-width:160px; }
+  .q-actions{ display:flex; gap:2px; flex-shrink:0; }
+
+  .tag.public-flag{ color:var(--ready); border-color:rgba(69,214,196,0.35); }
+  .card-footer{ flex-wrap:wrap; }
+  .card-footer .link-btn{ flex:1 1 90px; min-width:0; }
+  .card-state{ font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--accent); }
+  .vis-btn{
+    font-family:'JetBrains Mono',monospace; font-size:11px; padding:5px 9px; border-radius:7px; cursor:pointer;
+    background:var(--surface-2); color:var(--text-muted); border:1px solid var(--border-soft); white-space:nowrap;
+  }
+  .vis-btn.on{ color:var(--ready); border-color:rgba(69,214,196,0.4); }
+  .vis-btn:hover{ color:var(--text); }
+  .card.highlight, .idea-card.highlight{ border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-soft); }
+
+  .public-section, .users-section{ margin:34px 0 0; }
+  .public-section .sub, .users-section .sub{ font-size:12px; color:var(--text-muted); margin:-6px 0 12px; }
+  .users-section h3{ font-family:'Space Grotesk',sans-serif; font-size:15px; margin:0 0 10px; }
+  .user-list, .device-list{ display:flex; flex-direction:column; gap:8px; }
+  .user-row, .device-item{
+    display:flex; flex-wrap:wrap; align-items:center; gap:8px 12px;
+    padding:11px 13px; border-radius:12px; background:var(--surface); border:1px solid var(--border-soft);
+  }
+  .device-item{ background:var(--surface-2); }
+  .user-main, .device-main{ flex:1 1 200px; min-width:0; }
+  .user-email, .device-name{ font-family:'Space Grotesk',sans-serif; font-weight:600; font-size:14px; overflow-wrap:anywhere; display:flex; flex-wrap:wrap; gap:6px; align-items:center; }
+  .user-meta, .device-meta{ font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--text-muted); margin-top:3px; line-height:1.5; }
+  .user-actions{ display:flex; flex-wrap:wrap; gap:6px; }
+  .tag.blocked{ color:var(--fail); border-color:rgba(255,92,92,0.4); }
+  .tag.current{ color:var(--accent); border-color:rgba(124,156,255,0.4); }
+  .modal-sub{ font-family:'Space Grotesk',sans-serif; font-size:14.5px; margin:18px 0 6px; }
+  .modal-actions.wrap{ flex-wrap:wrap; }
+  .profile-btn{ max-width:220px; }
+  .profile-btn span{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+
+  @media (max-width:640px){
+    /* Auf dem Handy wäre die umbrechende Kopfzeile als „sticky“ zu hoch – sie scrollt mit. */
+    .topbar{ position:static; }
+    .topbar-right{ gap:8px; }
+    .topbar-right .btn{ padding:9px 12px; }
+    .profile-btn{ max-width:none; }
+    .profile-btn span{ display:none; }
+    .print-thumb{ width:60px; height:60px; }
+    .modal-actions.wrap .btn{ width:100%; justify-content:center; }
+  }
+  @media (max-width:480px){
+    .q-item{ flex-wrap:wrap; }
+    .q-actions{ width:100%; justify-content:flex-end; }
+    .panel{ padding:14px 12px; }
+  }
 </style>
 </head>
 <body>
@@ -421,18 +585,19 @@
   <div class="brand">
     <div class="brand-mark">3D</div>
     <div class="brand-text">
-      <h1>Druckplatte</h1>
+      <h1>Druckplatte <span class="preview-flag" id="previewFlag" hidden>PREVIEW</span></h1>
       <p>Modell-Tracker</p>
     </div>
   </div>
   <div class="topbar-right">
     <div class="stat-chips" id="statChips"></div>
-    <div class="seg-switch" id="roleSwitch">
+    <div class="seg-switch" id="roleSwitch" hidden>
       <button class="seg-btn" id="submitterBtn" data-role="submitter">Auftrag einreichen</button>
       <button class="seg-btn" id="adminBtn" data-role="admin">🔒 Admin</button>
     </div>
     <button class="btn btn-ghost" id="supportBtn">💬 Support<span class="badge-count" id="supportBadge" style="display:none;"></span></button>
     <button class="btn btn-primary" id="addBtn">+ Hinzufügen</button>
+    <button class="btn btn-ghost profile-btn" id="profileBtn" title="Profil &amp; vertrauenswürdige Geräte">👤 <span id="profileLabel">Profil</span></button>
   </div>
 </div>
 
@@ -442,6 +607,17 @@
     <a class="mw-link" href="https://makerworld.com" target="_blank" rel="noopener">Hier geht’s zur MakerWorld ↗</a>
   </div>
   <div class="mode-banner" id="modeBanner"></div>
+
+  <section class="live-grid" id="liveSection" hidden>
+    <div class="panel" id="currentPrintPanel">
+      <h3><span>🖨️ Aktueller Druck</span><span class="live-indicator" title="Wird automatisch aktualisiert"><span class="live-dot"></span>live</span></h3>
+      <div id="currentPrint"></div>
+    </div>
+    <div class="panel" id="queuePanel">
+      <h3><span>📋 Druckwarteschlange</span><span class="queue-total" id="queueTotal"></span></h3>
+      <div id="queueView"></div>
+    </div>
+  </section>
 
   <div class="support-section" id="supportSection" style="display:none;">
     <h3>🎧 Support-Nachrichten</h3>
@@ -463,6 +639,18 @@
 
   <div id="gridHeading" class="section-heading" style="display:none;">📋 Druckaufträge</div>
   <div class="grid" id="grid"></div>
+
+  <section class="public-section" id="publicSection" hidden>
+    <div class="section-heading">🌍 Öffentliche Modelle</div>
+    <p class="sub">Von anderen ausdrücklich freigegeben – ohne Auftragsnummer und ohne persönliche Daten.</p>
+    <div class="grid" id="publicGrid"></div>
+  </section>
+
+  <section class="users-section" id="usersSection" hidden>
+    <h3>👥 Benutzer &amp; Geräte</h3>
+    <p class="sub">Sperren oder Geräte zurücksetzen widerruft alle vertrauenswürdigen Geräte des Benutzers sofort.</p>
+    <div class="user-list" id="userList"></div>
+  </section>
 </main>
 
 <footer>
@@ -524,6 +712,10 @@
         <label for="f-note" id="f-note-label">Notiz (optional)</label>
         <textarea id="f-note" placeholder="z. B. Druckeinstellungen, Wünsche, Anmerkungen …"></textarea>
       </div>
+      <div class="field check-field" id="publicField">
+        <label class="check" for="f-public"><input type="checkbox" id="f-public"> <span>🌍 Öffentlich anzeigen</span></label>
+        <div class="field-hint">Andere sehen dann nur Bild, Name, Material, Farbe und Link – nie deine Auftragsnummer oder persönliche Daten. Standard: privat.</div>
+      </div>
       <div class="modal-actions">
         <button type="button" class="btn btn-ghost" id="cancelBtn">Abbrechen</button>
         <button type="submit" class="btn btn-primary" id="saveBtn">Speichern</button>
@@ -567,736 +759,74 @@
   </div>
 </div>
 
+<!-- Profil & vertrauenswürdige Geräte -->
+<div class="overlay" id="profileOverlay">
+  <div class="modal wide">
+    <h2><span>👤 Profil</span><span class="x" id="closeProfile">&times;</span></h2>
+    <p class="hint">Angemeldet als <strong id="profileEmail"></strong></p>
+    <h3 class="modal-sub">🔐 Vertrauenswürdige Geräte</h3>
+    <p class="hint">Ein Gerät ist ab der Code-Anmeldung genau 30 Tage vertrauenswürdig – die Frist verlängert sich nicht durch Nutzung. Links aus Druckplatte-E-Mails nutzen dein bereits registriertes Gerät und legen kein neues an.</p>
+    <div class="device-list" id="deviceList"></div>
+    <div class="modal-actions wrap">
+      <button type="button" class="btn btn-ghost" id="revokeOthersBtn">Alle anderen Geräte abmelden</button>
+      <button type="button" class="btn btn-danger-outline" id="logoutBtn">Abmelden (dieses Gerät vergessen)</button>
+    </div>
+  </div>
+</div>
+
+<!-- Admin-Passwort -->
+<div class="overlay" id="adminOverlay">
+  <div class="modal">
+    <h2><span>🔒 Admin-Modus</span><span class="x" id="closeAdmin">&times;</span></h2>
+    <p class="hint">Das Admin-Passwort wird in jeder neuen Sitzung abgefragt – ein vertrauenswürdiges Gerät ersetzt es nicht.</p>
+    <form id="adminForm">
+      <div class="field">
+        <label for="a-password">Admin-Passwort</label>
+        <input type="password" id="a-password" autocomplete="current-password" required>
+      </div>
+      <div class="gate-error" id="a-error" role="alert"></div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-ghost" id="adminCancel">Abbrechen</button>
+        <button type="submit" class="btn btn-primary" id="adminSubmit">Admin-Modus</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Anmeldung per E-Mail-Code -->
+<div class="gate" id="loginGate" hidden>
+  <div class="gate-card">
+    <div class="gate-brand">
+      <div class="brand-mark">3D</div>
+      <div class="brand-text"><h1>Druckplatte</h1><p>Anmeldung</p></div>
+    </div>
+    <form id="emailForm">
+      <h2>Anmelden</h2>
+      <p class="hint">Gib deine E-Mail-Adresse ein – du bekommst einen 6-stelligen Code.</p>
+      <div class="field">
+        <label for="g-email">E-Mail</label>
+        <input type="email" id="g-email" autocomplete="email" required>
+      </div>
+      <button class="btn btn-primary" type="submit" id="g-send">Code senden</button>
+    </form>
+    <form id="codeForm" hidden>
+      <h2>Code eingeben</h2>
+      <p class="hint" id="g-code-hint"></p>
+      <div class="field">
+        <label for="g-code">Code</label>
+        <input type="text" id="g-code" class="code-input" inputmode="numeric" autocomplete="one-time-code" maxlength="6" required>
+      </div>
+      <button class="btn btn-primary" type="submit" id="g-verify">Anmelden</button>
+      <button class="btn btn-ghost" type="button" id="g-back">Andere E-Mail-Adresse</button>
+    </form>
+    <div class="gate-error" id="g-error" role="alert"></div>
+    <p class="gate-note">🔐 Nach der Anmeldung bleibt dieses Gerät <strong>30 Tage</strong> vertrauenswürdig – auch Links aus Druckplatte-E-Mails öffnen sich dann ohne neuen Code. Danach ist einmal ein neuer Code nötig.</p>
+    <p class="gate-note" id="g-preview-note" hidden>🧪 Preview: Es wird keine echte E-Mail versendet – Codes stehen im <a href="/dev/outbox" target="_blank" rel="noopener">Dev-Postausgang</a>.</p>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
-<script>
-(function(){
-  const ADMIN_PIN = "2026"; // einfacher Zugangscode fürs Umschalten in den Admin-Modus (siehe Hinweis im Chat)
-  const MAKERWORLD_URL = "https://makerworld.com";
-
-  const COLORS = [
-    {name:"Weiß", hex:"#F2F1ED"}, {name:"Schwarz", hex:"#2B2A2E"}, {name:"Grau", hex:"#8B8B93"},
-    {name:"Rot", hex:"#E4573D"}, {name:"Blau", hex:"#3E7CE0"}, {name:"Grün", hex:"#4CAF7D"},
-    {name:"Gelb", hex:"#F2C744"}, {name:"Orange", hex:"#F2884B"}, {name:"Transparent", hex:"#C9CBCE"},
-    {name:"Silber", hex:"#B8BCC2"}, {name:"Gold", hex:"#D4AF57"}, {name:"Sonstige", hex:"#7C9CFF"}
-  ];
-  const FILAMENTS = ["PLA","PETG","ABS","TPU","ASA","Nylon","PLA+","Resin","Sonstige"];
-  const STATUS = {
-    ready:{label:"Fertigstellung", cls:"status-ready"},
-    progress:{label:"In Bearbeitung", cls:"status-progress"},
-    fail:{label:"Geht nicht", cls:"status-fail"}
-  };
-
-  let models = [];
-  let supportMessages = [];
-  let role = 'submitter'; // 'submitter' | 'admin'
-  let editingId = null;
-  let currentType = 'model'; // 'model' | 'idea'
-  let activeFilter = null;
-  let pendingImage = "";
-
-  const $ = (sel)=>document.querySelector(sel);
-  const grid = $('#grid');
-  const emptyState = $('#emptyState');
-  const gridHeading = $('#gridHeading');
-  const overlay = $('#overlay');
-  const supportOverlay = $('#supportOverlay');
-  const textOverlay = $('#textOverlay');
-  const toastEl = $('#toast');
-
-  function toast(msg){
-    toastEl.textContent = msg;
-    toastEl.classList.add('show');
-    clearTimeout(toast._t);
-    toast._t = setTimeout(()=>toastEl.classList.remove('show'), 2600);
-  }
-
-  function colorHex(name){
-    const c = COLORS.find(c=>c.name===name);
-    return c ? c.hex : '#7C9CFF';
-  }
-  function uid(prefix){ return (prefix||'m') + '_' + Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
-  function isMakerWorldLink(url){ return /makerworld\.com/i.test(url||''); }
-  function escapeHtml(s){
-    return (s||'').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
-  }
-  function formatTime(ts){
-    try{ return new Date(ts).toLocaleString('de-DE', {day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit'}); }
-    catch(e){ return ''; }
-  }
-
-  async function loadRole(){
-    try{
-      const res = await window.storage.get('role', false);
-      if(res && res.value === 'admin') role = 'admin';
-    }catch(e){}
-  }
-  async function saveRole(){
-    try{ await window.storage.set('role', role, false); }catch(e){}
-  }
-
-  async function loadModels(){
-    try{
-      const res = await window.storage.get('models', true);
-      models = res && res.value ? JSON.parse(res.value) : [];
-    }catch(e){ models = []; }
-  }
-  async function saveModels(){
-    try{
-      const res = await window.storage.set('models', JSON.stringify(models), true);
-      if(!res){ toast('Speichern fehlgeschlagen'); }
-    }catch(e){ toast('Speichern fehlgeschlagen'); }
-  }
-
-  async function loadSupport(){
-    try{
-      const res = await window.storage.get('support', true);
-      supportMessages = res && res.value ? JSON.parse(res.value) : [];
-    }catch(e){ supportMessages = []; }
-  }
-  async function saveSupport(){
-    try{
-      const res = await window.storage.set('support', JSON.stringify(supportMessages), true);
-      if(!res){ toast('Speichern fehlgeschlagen'); }
-    }catch(e){ toast('Speichern fehlgeschlagen'); }
-  }
-
-  function populateSelect(sel, items){
-    sel.innerHTML = items.map(v => `<option value="${v}">${v}</option>`).join('');
-  }
-  populateSelect($('#f-color'), COLORS.map(c=>c.name));
-  populateSelect($('#f-filament'), FILAMENTS);
-
-  function applyRoleUI(){
-    $('#adminBtn').classList.toggle('active', role==='admin');
-    $('#submitterBtn').classList.toggle('active', role==='submitter');
-    $('#statusField').style.display = role==='admin' ? 'block' : 'none';
-    const banner = $('#modeBanner');
-    if(role==='admin'){
-      banner.className = 'mode-banner admin';
-      banner.textContent = '🔒 Admin-Modus – du siehst Ideen & Support-Nachrichten und verwaltest alle Modelle.';
-    }else{
-      banner.className = 'mode-banner';
-      banner.textContent = '📤 Auftraggeber-Modus – du reichst Modelle/Ideen ein, der Admin setzt den Status.';
-    }
-    $('#emptyText').textContent = role==='admin'
-      ? 'Noch keine Modelle auf der Platte.'
-      : 'Reich dein erstes Druck-Modell ein – mit MakerWorld-Link, Farbe, Filament und Bild.';
-  }
-
-  function renderChips(){
-    const taskModels = models.filter(m => !(m.type==='idea' && !m.accepted));
-    const counts = {ready:0, progress:0, fail:0};
-    taskModels.forEach(m=>{ if(counts[m.status]!==undefined) counts[m.status]++; });
-    const pendingIdeas = models.filter(m => m.type==='idea' && !m.accepted).length;
-    const chips = [
-      {key:null, label:'Alle', dot:null, n:taskModels.length},
-      {key:'ready', label:STATUS.ready.label, dot:'var(--ready)', n:counts.ready},
-      {key:'progress', label:STATUS.progress.label, dot:'var(--progress)', n:counts.progress},
-      {key:'fail', label:STATUS.fail.label, dot:'var(--fail)', n:counts.fail},
-    ];
-    let html = chips.map(c => `
-      <button type="button" class="chip ${activeFilter===c.key?'active':''}" data-filter="${c.key ?? ''}">
-        ${c.dot ? `<span class="dot" style="background:${c.dot}"></span>` : ''}
-        ${c.label} <span class="n">${c.n}</span>
-      </button>
-    `).join('');
-    if(pendingIdeas > 0){
-      html += `<button type="button" class="chip" id="ideaChip">💡 Ideen <span class="n">${pendingIdeas}</span></button>`;
-    }
-    if(role==='admin' && supportMessages.length > 0){
-      html += `<button type="button" class="chip" id="supportChip">🎧 Support <span class="n">${supportMessages.length}</span></button>`;
-    }
-    $('#statChips').innerHTML = html;
-    $('#statChips').querySelectorAll('.chip[data-filter]').forEach(btn=>{
-      btn.addEventListener('click', ()=>{
-        activeFilter = btn.dataset.filter || null;
-        render();
-      });
-    });
-    const ideaChip = $('#ideaChip');
-    if(ideaChip) ideaChip.addEventListener('click', ()=>{
-      const sec = $('#ideaSection'); if(sec) sec.scrollIntoView({behavior:'smooth', block:'start'});
-    });
-    const supportChip = $('#supportChip');
-    if(supportChip) supportChip.addEventListener('click', ()=>{
-      const sec = $('#supportSection'); if(sec) sec.scrollIntoView({behavior:'smooth', block:'start'});
-    });
-
-    // Support-Button-Badge
-    const badge = $('#supportBadge');
-    if(role==='admin' && supportMessages.length > 0){
-      badge.style.display = 'flex';
-      badge.textContent = supportMessages.length;
-    }else{
-      badge.style.display = 'none';
-    }
-  }
-
-  function renderIdeaInbox(){
-    const pending = models.filter(m => m.type==='idea' && !m.accepted);
-    const section = $('#ideaSection');
-    if(pending.length === 0){
-      section.style.display = 'none';
-      $('#ideaList').innerHTML = '';
-      return;
-    }
-    section.style.display = 'block';
-    $('#ideaList').innerHTML = pending.map(m=>{
-      const thumb = m.image
-        ? `<img class="idea-thumb" src="${m.image}" alt="${escapeHtml(m.name)}">`
-        : `<div class="idea-thumb-fallback">💡</div>`;
-      const actions = role==='admin'
-        ? `<div class="idea-actions">
-             <button class="btn btn-primary btn-sm" data-accept="${m.id}">Annehmen</button>
-             <button class="btn btn-danger-outline btn-sm" data-reject="${m.id}">Ablehnen</button>
-           </div>`
-        : `<span class="idea-waiting">wartet auf Admin</span>`;
-      return `
-      <div class="idea-card" data-id="${m.id}">
-        ${thumb}
-        <div class="idea-body">
-          <div class="idea-title">${escapeHtml(m.name)}</div>
-          ${m.note ? `<div class="idea-note">${escapeHtml(m.note)}</div>` : ''}
-          <div class="idea-meta">
-            <span class="tag"><span class="swatch-dot" style="background:${colorHex(m.color)}"></span>${escapeHtml(m.color||'—')}</span>
-            <span class="tag">${escapeHtml(m.filament||'—')}</span>
-          </div>
-        </div>
-        ${actions}
-      </div>`;
-    }).join('');
-
-    if(role==='admin'){
-      $('#ideaList').querySelectorAll('[data-accept]').forEach(btn=>btn.addEventListener('click', ()=>acceptIdea(btn.dataset.accept)));
-      $('#ideaList').querySelectorAll('[data-reject]').forEach(btn=>btn.addEventListener('click', ()=>rejectIdea(btn.dataset.reject)));
-    }
-  }
-
-  function renderSupportInbox(){
-    const section = $('#supportSection');
-    if(role !== 'admin' || supportMessages.length === 0){
-      section.style.display = 'none';
-      $('#supportList').innerHTML = '';
-      return;
-    }
-    section.style.display = 'block';
-    const sorted = [...supportMessages].sort((a,b)=> (b.createdAt||0) - (a.createdAt||0));
-    $('#supportList').innerHTML = sorted.map(s=>{
-      const modelStillExists = s.modelId && models.some(m=>m.id===s.modelId);
-      return `
-      <div class="support-card" data-id="${s.id}">
-        <div class="support-thumb-fallback">💬</div>
-        <div class="support-body">
-          <div class="support-title">${s.modelName ? escapeHtml(s.modelName) : 'Allgemeine Nachricht'}</div>
-          <div class="support-note">${escapeHtml(s.message)}</div>
-          <div class="support-time">${formatTime(s.createdAt)}</div>
-        </div>
-        <div class="support-actions">
-          ${modelStillExists ? `<button class="btn btn-danger-outline btn-sm" data-delmodel="${s.id}">🗑 Modell löschen</button>` : ''}
-          <button class="btn btn-ghost btn-sm" data-resolve="${s.id}">✓ Erledigt</button>
-        </div>
-      </div>`;
-    }).join('');
-
-    $('#supportList').querySelectorAll('[data-delmodel]').forEach(btn=>{
-      btn.addEventListener('click', ()=>resolveSupport(btn.dataset.delmodel, true));
-    });
-    $('#supportList').querySelectorAll('[data-resolve]').forEach(btn=>{
-      btn.addEventListener('click', ()=>resolveSupport(btn.dataset.resolve, false));
-    });
-  }
-
-  async function acceptIdea(id){
-    const m = models.find(x=>x.id===id);
-    if(!m) return;
-    m.accepted = true;
-    m.status = 'progress';
-    await saveModels();
-    render();
-    toast('Idee angenommen – jetzt in Bearbeitung');
-  }
-  async function rejectIdea(id){
-    const m = models.find(x=>x.id===id);
-    if(!m) return;
-    if(!confirm(`Idee "${m.name}" ablehnen und entfernen?`)) return;
-    models = models.filter(x=>x.id!==id);
-    await saveModels();
-    render();
-    toast('Idee abgelehnt');
-  }
-
-  async function resolveSupport(supportId, alsoDeleteModel){
-    const msg = supportMessages.find(s=>s.id===supportId);
-    if(!msg) return;
-    if(alsoDeleteModel && msg.modelId){
-      if(!confirm(`Modell "${msg.modelName}" wirklich löschen?`)) return;
-      models = models.filter(x=>x.id!==msg.modelId);
-      await saveModels();
-    }
-    supportMessages = supportMessages.filter(s=>s.id!==supportId);
-    await saveSupport();
-    render();
-    toast(alsoDeleteModel ? 'Modell gelöscht' : 'Als erledigt markiert');
-  }
-
-  function render(){
-    renderChips();
-    renderSupportInbox();
-    renderIdeaInbox();
-
-    const taskModels = models.filter(m => !(m.type==='idea' && !m.accepted));
-    const list = activeFilter ? taskModels.filter(m=>m.status===activeFilter) : taskModels;
-
-    emptyState.style.display = taskModels.length===0 ? 'block' : 'none';
-    grid.style.display = taskModels.length===0 ? 'none' : 'grid';
-    gridHeading.style.display = taskModels.length===0 ? 'none' : 'block';
-
-    grid.innerHTML = list.map(m=>{
-      const st = STATUS[m.status] || STATUS.progress;
-      const hex = colorHex(m.color);
-      const media = m.image
-        ? `<img src="${m.image}" alt="${escapeHtml(m.name)}">`
-        : `<div class="swatch-fallback" style="background:${hex}"></div>`;
-      const linkHtml = m.link
-        ? `<a class="link-btn" href="${escapeHtml(m.link)}" target="_blank" rel="noopener">↗ ${escapeHtml(m.link.replace(/^https?:\/\//,''))}</a>`
-        : `<span class="link-empty">kein Link</span>`;
-      const ideaTag = m.type==='idea' ? `<span class="tag idea-flag">💡 Idee</span>` : '';
-      const actions = role==='admin'
-        ? `<div class="icon-actions">
-             <button class="icon-btn edit" title="Bearbeiten" aria-label="Bearbeiten">✎</button>
-             <button class="icon-btn del" title="Löschen" aria-label="Löschen">🗑</button>
-           </div>`
-        : '';
-      return `
-      <div class="card" data-id="${m.id}">
-        <div class="clip left"></div>
-        <div class="clip right"></div>
-        <div class="card-media">
-          ${media}
-          <div class="status-tag ${st.cls}"><span class="led"></span>${st.label}</div>
-        </div>
-        <div class="card-body">
-          <div class="card-title">${escapeHtml(m.name)}</div>
-          <div class="tag-row">
-            ${ideaTag}
-            <span class="tag"><span class="swatch-dot" style="background:${hex}"></span>${escapeHtml(m.color||'—')}</span>
-            <span class="tag">${escapeHtml(m.filament||'—')}</span>
-          </div>
-          ${m.note ? `<div class="card-note">${escapeHtml(m.note)}</div>` : ''}
-          <div class="card-footer">
-            ${linkHtml}
-            ${actions}
-          </div>
-        </div>
-      </div>`;
-    }).join('');
-
-    if(role==='admin'){
-      grid.querySelectorAll('.card').forEach(card=>{
-        const id = card.dataset.id;
-        card.querySelector('.edit').addEventListener('click', ()=>openModal(id));
-        card.querySelector('.del').addEventListener('click', ()=>deleteModel(id));
-      });
-    }
-
-    // Modell-Auswahl im Support-Formular aktuell halten
-    const sSel = $('#s-model');
-    const prevVal = sSel.value;
-    sSel.innerHTML = '<option value="">Kein bestimmtes Modell</option>' +
-      taskModels.map(m=>`<option value="${m.id}">${escapeHtml(m.name)}</option>`).join('');
-    if(taskModels.some(m=>m.id===prevVal)) sSel.value = prevVal;
-  }
-
-  function resetForm(){
-    $('#f-name').value = '';
-    $('#f-link').value = '';
-    $('#f-color').value = COLORS[0].name;
-    $('#f-filament').value = FILAMENTS[0];
-    $('#f-status').value = 'progress';
-    $('#f-note').value = '';
-    $('#f-image-url').value = '';
-    pendingImage = '';
-    updatePreview();
-  }
-
-  function updatePreview(){
-    const prev = $('#imgPreview');
-    if(pendingImage){
-      prev.innerHTML = `<img src="${pendingImage}" alt="Vorschau">`;
-    }else{
-      prev.textContent = 'Bild hierher ziehen, mit Strg+V einfügen oder Datei wählen';
-    }
-  }
-
-  function applyTypeUI(){
-    $('#typeSwitch').querySelectorAll('.seg-btn').forEach(b=>{
-      b.classList.toggle('active', b.dataset.type === currentType);
-    });
-    if(currentType === 'model'){
-      $('#f-name-label').textContent = 'Modell';
-      $('#f-name').placeholder = 'z. B. Handyhalterung';
-      $('#linkField').style.display = 'block';
-      $('#f-link-label').textContent = 'Link zum Modell (MakerWorld)';
-      $('#f-link').placeholder = 'https://makerworld.com/...';
-      $('#f-note-label').textContent = 'Notiz (optional)';
-      $('#modalHint').textContent = role==='admin'
-        ? 'Nur Modelle von MakerWorld – Link erforderlich.'
-        : 'Nur Modelle von MakerWorld sind zugelassen. Der Status wird vom Admin gesetzt.';
-    }else{
-      $('#f-name-label').textContent = 'Idee';
-      $('#f-name').placeholder = 'z. B. Kabelhalter für Schreibtisch';
-      $('#linkField').style.display = 'block';
-      $('#f-link-label').textContent = 'Referenz-Link (optional)';
-      $('#f-link').placeholder = 'https://... (optional, falls vorhanden)';
-      $('#f-note-label').textContent = 'Beschreibung';
-      $('#modalHint').textContent = 'Für Dinge, die es auf MakerWorld nicht gibt. Geht direkt an den Admin – der kann die Idee annehmen und als Aufgabe mit Status einplanen.';
-    }
-  }
-  $('#typeSwitch').addEventListener('click', (e)=>{
-    const btn = e.target.closest('.seg-btn');
-    if(!btn) return;
-    currentType = btn.dataset.type;
-    applyTypeUI();
-  });
-
-  function openModal(id){
-    editingId = id || null;
-    resetForm();
-    const isNew = !id;
-    $('#typeSwitch').style.display = isNew ? 'flex' : 'none';
-
-    if(id){
-      const m = models.find(x=>x.id===id);
-      if(m && role==='admin'){
-        currentType = m.type || 'model';
-        $('#modalTitle').textContent = 'Bearbeiten';
-        $('#f-name').value = m.name || '';
-        $('#f-link').value = m.link || '';
-        $('#f-color').value = m.color || COLORS[0].name;
-        $('#f-filament').value = m.filament || FILAMENTS[0];
-        $('#f-status').value = m.status || 'progress';
-        $('#f-note').value = m.note || '';
-        pendingImage = m.image || '';
-        if(m.image && m.image.startsWith('http')) $('#f-image-url').value = m.image;
-        updatePreview();
-      }
-    }else{
-      currentType = 'model';
-      $('#modalTitle').textContent = role==='admin' ? 'Hinzufügen' : 'Einreichen';
-    }
-    applyTypeUI();
-    overlay.classList.add('open');
-    setTimeout(()=>$('#f-name').focus(), 80);
-  }
-  function closeModalFn(){ overlay.classList.remove('open'); editingId = null; }
-
-  async function deleteModel(id){
-    const m = models.find(x=>x.id===id);
-    if(!m) return;
-    if(!confirm(`"${m.name}" wirklich löschen?`)) return;
-    models = models.filter(x=>x.id!==id);
-    await saveModels();
-    render();
-    toast('Gelöscht');
-  }
-
-  function resizeImageFromFile(file){
-    return new Promise((resolve, reject)=>{
-      if(!file || !file.type || !file.type.startsWith('image/')){ reject(new Error('Kein Bild')); return; }
-      const reader = new FileReader();
-      reader.onload = (e)=>{
-        const img = new Image();
-        img.onload = ()=>{
-          const maxW = 700;
-          const scale = Math.min(1, maxW / img.width);
-          const w = Math.round(img.width * scale);
-          const h = Math.round(img.height * scale);
-          const canvas = document.createElement('canvas');
-          canvas.width = w; canvas.height = h;
-          const ctx = canvas.getContext('2d');
-          ctx.drawImage(img, 0, 0, w, h);
-          resolve(canvas.toDataURL('image/jpeg', 0.75));
-        };
-        img.onerror = reject;
-        img.src = e.target.result;
-      };
-      reader.onerror = reject;
-      reader.readAsDataURL(file);
-    });
-  }
-
-  // Rollen umschalten
-  async function trySwitchRole(target){
-    if(target === role) return;
-    if(target === 'admin'){
-      const code = prompt('Admin-Code eingeben:');
-      if(code === null) return;
-      if(code !== ADMIN_PIN){ toast('Falscher Code'); return; }
-    }
-    role = target;
-    await saveRole();
-    applyRoleUI();
-    render();
-    toast(role==='admin' ? 'Admin-Modus aktiv' : 'Auftraggeber-Modus aktiv');
-  }
-  $('#adminBtn').addEventListener('click', ()=>trySwitchRole('admin'));
-  $('#submitterBtn').addEventListener('click', ()=>trySwitchRole('submitter'));
-
-  // Modell-Formular Events
-  $('#addBtn').addEventListener('click', ()=>openModal(null));
-  $('#emptyAddBtn').addEventListener('click', ()=>openModal(null));
-  $('#closeModal').addEventListener('click', closeModalFn);
-  $('#cancelBtn').addEventListener('click', closeModalFn);
-  overlay.addEventListener('click', (e)=>{ if(e.target === overlay) closeModalFn(); });
-
-  $('#fileBtn').addEventListener('click', ()=>$('#fileInput').click());
-  $('#fileInput').addEventListener('change', async (e)=>{
-    const file = e.target.files[0];
-    if(!file) return;
-    try{
-      pendingImage = await resizeImageFromFile(file);
-      $('#f-image-url').value = '';
-      updatePreview();
-    }catch(err){ toast('Bild konnte nicht geladen werden'); }
-  });
-  $('#f-image-url').addEventListener('input', (e)=>{
-    pendingImage = e.target.value.trim();
-    updatePreview();
-  });
-
-  // Drag & Drop auf den Bild-Slot
-  const imgPreviewEl = $('#imgPreview');
-  ['dragenter','dragover'].forEach(evt=>{
-    imgPreviewEl.addEventListener(evt, (e)=>{
-      e.preventDefault(); e.stopPropagation();
-      imgPreviewEl.classList.add('drag-active');
-    });
-  });
-  ['dragleave','dragend'].forEach(evt=>{
-    imgPreviewEl.addEventListener(evt, (e)=>{
-      e.preventDefault(); e.stopPropagation();
-      imgPreviewEl.classList.remove('drag-active');
-    });
-  });
-  imgPreviewEl.addEventListener('drop', async (e)=>{
-    e.preventDefault(); e.stopPropagation();
-    imgPreviewEl.classList.remove('drag-active');
-    const file = e.dataTransfer.files && e.dataTransfer.files[0];
-    if(file){
-      try{
-        pendingImage = await resizeImageFromFile(file);
-        $('#f-image-url').value = '';
-        updatePreview();
-        return;
-      }catch(err){ /* fällt durch auf URL-Versuch */ }
-    }
-    const uriData = e.dataTransfer.getData('text/uri-list') || e.dataTransfer.getData('text/plain');
-    if(uriData && /^https?:\/\//i.test(uriData.trim())){
-      pendingImage = uriData.trim();
-      $('#f-image-url').value = pendingImage;
-      updatePreview();
-    }else{
-      toast('Kein gültiges Bild erkannt');
-    }
-  });
-
-  // Einfügen per Strg+V, wenn das Modell-Formular offen ist
-  document.addEventListener('paste', async (e)=>{
-    if(!overlay.classList.contains('open')) return;
-    const items = e.clipboardData && e.clipboardData.items;
-    if(!items) return;
-    for(const item of items){
-      if(item.type && item.type.startsWith('image/')){
-        e.preventDefault();
-        const file = item.getAsFile();
-        try{
-          pendingImage = await resizeImageFromFile(file);
-          $('#f-image-url').value = '';
-          updatePreview();
-          toast('Bild eingefügt');
-        }catch(err){ toast('Bild konnte nicht eingefügt werden'); }
-        return;
-      }
-    }
-  });
-
-  $('#modelForm').addEventListener('submit', async (e)=>{
-    e.preventDefault();
-    const name = $('#f-name').value.trim();
-    if(!name){ toast('Bitte einen Namen eingeben'); return; }
-    const link = $('#f-link').value.trim();
-
-    if(currentType === 'model' && !isMakerWorldLink(link)){
-      toast('Bitte einen gültigen MakerWorld-Link angeben');
-      return;
-    }
-
-    const data = {
-      type: currentType,
-      name,
-      link,
-      color: $('#f-color').value,
-      filament: $('#f-filament').value,
-      note: $('#f-note').value.trim(),
-      image: pendingImage
-    };
-    if(role==='admin'){ data.status = $('#f-status').value; }
-
-    const saveBtn = $('#saveBtn');
-    saveBtn.disabled = true; saveBtn.textContent = 'Speichert …';
-
-    if(editingId && role==='admin'){
-      const idx = models.findIndex(m=>m.id===editingId);
-      if(idx>-1) models[idx] = {...models[idx], ...data};
-    }else if(currentType === 'idea' && role !== 'admin'){
-      models.unshift({id: uid(), accepted:false, status:null, ...data});
-    }else{
-      models.unshift({id: uid(), status: data.status || 'progress', accepted:true, ...data});
-    }
-
-    await saveModels();
-    saveBtn.disabled = false; saveBtn.textContent = 'Speichern';
-    closeModalFn();
-    render();
-    toast(currentType==='idea' && role!=='admin' ? 'Idee an Admin gesendet' : (role==='admin' ? 'Gespeichert' : 'Auftrag eingereicht'));
-  });
-
-  // Support-Formular
-  function openSupportModal(){
-    $('#s-message').value = '';
-    $('#s-model').value = '';
-    supportOverlay.classList.add('open');
-    setTimeout(()=>$('#s-message').focus(), 80);
-  }
-  function closeSupportModal(){ supportOverlay.classList.remove('open'); }
-  $('#supportBtn').addEventListener('click', openSupportModal);
-  $('#closeSupportModal').addEventListener('click', closeSupportModal);
-  $('#supportCancelBtn').addEventListener('click', closeSupportModal);
-  supportOverlay.addEventListener('click', (e)=>{ if(e.target === supportOverlay) closeSupportModal(); });
-
-  $('#supportForm').addEventListener('submit', async (e)=>{
-    e.preventDefault();
-    const message = $('#s-message').value.trim();
-    if(!message){ toast('Bitte eine Nachricht eingeben'); return; }
-    const modelId = $('#s-model').value || null;
-    const modelObj = modelId ? models.find(m=>m.id===modelId) : null;
-
-    const btn = $('#supportSendBtn');
-    btn.disabled = true; btn.textContent = 'Sendet …';
-    supportMessages.push({
-      id: uid('s'),
-      modelId: modelObj ? modelObj.id : null,
-      modelName: modelObj ? modelObj.name : null,
-      message,
-      createdAt: Date.now()
-    });
-    await saveSupport();
-    btn.disabled = false; btn.textContent = 'Senden';
-    closeSupportModal();
-    render();
-    toast('Nachricht an Admin gesendet');
-  });
-
-  // AGB / README
-  const AGB_HTML = `
-    <h3>1. Geltungsbereich</h3>
-    <p>Diese Bedingungen gelten für die Nutzung von „Druckplatte“ als internes Tool zur Verwaltung von 3D-Druck-Aufträgen zwischen Auftraggeber:innen und Admin.</p>
-    <h3>2. Zulässige Modelle</h3>
-    <p>Es dürfen ausschließlich 3D-Modelle eingereicht werden, die auf MakerWorld (makerworld.com) verfügbar sind. Eigene Ideen, die dort nicht existieren, können separat als Idee eingereicht und vom Admin geprüft werden.</p>
-    <h3>3. Nutzung & Pflichten</h3>
-    <ul>
-      <li>Eingereichte Angaben (Modell, Farbe, Filament, Bild) sollen wahrheitsgemäß und vollständig sein.</li>
-      <li>Der Status eines Auftrags wird ausschließlich vom Admin gepflegt.</li>
-      <li>Löschwünsche werden über die Support-Funktion an den Admin gerichtet, nicht eigenständig umgesetzt.</li>
-    </ul>
-    <h3>4. Haftung</h3>
-    <p>Die Nutzung erfolgt ohne Gewähr auf ständige Verfügbarkeit. Für Druckergebnisse, Materialschäden oder Zeitverzug wird keine Haftung übernommen.</p>
-    <h3>5. Datenspeicherung</h3>
-    <p>Eingereichte Daten (Modelle, Ideen, Support-Nachrichten, Bilder) werden für alle Nutzer:innen dieses Tools sichtbar gespeichert.</p>
-    <h3>6. Änderungen</h3>
-    <p>Diese Bedingungen können jederzeit durch den Admin angepasst werden.</p>
-    <div class="disclaimer">Hinweis: Dies ist eine allgemeine Vorlage ohne rechtliche Prüfung, keine Rechtsberatung. Bitte vor produktivem Einsatz individuell anpassen bzw. rechtlich prüfen lassen.</div>
-  `;
-  const README_HTML = `
-    <h3>Was ist Druckplatte?</h3>
-    <p>Ein kleines Tool, um 3D-Druck-Aufträge zu sammeln, zu verfolgen und zu verwalten – von der Einreichung bis zur Fertigstellung.</p>
-    <h3>Rollen</h3>
-    <ul>
-      <li><strong>Auftraggeber:in</strong> – reicht Modelle (von MakerWorld) oder eigene Ideen ein, sieht den Status, kann aber Status nicht selbst ändern.</li>
-      <li><strong>Admin</strong> – setzt Status (Fertigstellung / In Bearbeitung / Geht nicht), bearbeitet/löscht Modelle, nimmt Ideen an oder lehnt sie ab, bearbeitet Support-Nachrichten. Zugang über den „🔒 Admin“-Button oben rechts mit Code.</li>
-    </ul>
-    <h3>MakerWorld-Pflicht</h3>
-    <p>Nur Modelle von MakerWorld sind zulässig – der Link wird beim Einreichen geprüft. Dinge, die es dort nicht gibt, können als „Eigene Idee“ eingereicht werden.</p>
-    <h3>Ideen-Eingang</h3>
-    <p>Eigene Ideen landen direkt beim Admin. Wird eine Idee angenommen, wird daraus automatisch ein normaler Druckauftrag mit Status „In Bearbeitung“.</p>
-    <h3>Support</h3>
-    <p>Über den „💬 Support“-Button lässt sich eine Nachricht an den Admin schicken, z. B. um ein Modell wieder löschen zu lassen. Der Admin sieht alle Nachrichten im Bereich „Support-Nachrichten“ und kann das betroffene Modell direkt von dort löschen.</p>
-    <h3>Bilder hinzufügen</h3>
-    <p>Im Bild-Feld eines Modells kannst du wahlweise eine Bild-URL eintragen, eine Datei auswählen, ein Bild per Drag &amp; Drop in das Vorschaufeld ziehen oder ein kopiertes Bild direkt mit Strg+V einfügen.</p>
-    <h3>Speicherung</h3>
-    <p>Alle Modelle, Ideen und Support-Nachrichten werden geteilt gespeichert – alle Nutzer:innen dieses Tools sehen dieselben Daten.</p>
-  `;
-  const FILAMENT_INFO = [
-    {name:"PLA", icon:"🌱", desc:"Leicht zu drucken, kaum Verzug, aus Maisstärke – die Einsteiger-Empfehlung. Nicht hitzebeständig (erweicht ab ca. 55–60 °C) und eher spröde.", uses:"Deko, Prototypen, Spielzeug, Figuren – alles ohne große mechanische oder thermische Belastung"},
-    {name:"PLA+", icon:"🌱+", desc:"Verbesserte PLA-Rezeptur, zäher und schlagfester als Standard-PLA, dabei genauso einfach zu drucken.", uses:"Funktionsteile mit etwas mehr Belastung, Halterungen, Werkzeuggriffe"},
-    {name:"PETG", icon:"💧", desc:"Widerstandsfähig, schlagfest, feuchtigkeitsbeständig, chemisch recht beständig. Etwas anspruchsvoller im Druck (neigt zu Fäden) als PLA.", uses:"Behälter, Outdoor-Teile, mechanisch beanspruchte Teile, Teile mit Feuchtigkeitskontakt"},
-    {name:"ABS", icon:"🔥", desc:"Hitzebeständiger und schlagfester als PLA, aber anspruchsvoll im Druck (Verzug, braucht beheiztes Bett/geschlossenen Bauraum, riecht beim Drucken).", uses:"Gehäuse, Autoteile, mechanisch und thermisch belastete Bauteile"},
-    {name:"ASA", icon:"☀️", desc:"Ähnliche Eigenschaften wie ABS, zusätzlich UV- und witterungsbeständig. Ähnlich anspruchsvoll im Druck.", uses:"Teile für den Außenbereich, Gartenmöbel-Halterungen, Dinge mit Sonnenkontakt"},
-    {name:"TPU", icon:"🧦", desc:"Flexibles, gummiartiges Filament in verschiedenen Härtegraden. Druckt sich langsamer, empfindlich bei hohen Druckgeschwindigkeiten.", uses:"Handyhüllen, Dichtungen, Scharniere, Anti-Rutsch-Füße, flexible Halterungen"},
-    {name:"Nylon (PA)", icon:"⚙️", desc:"Sehr robust, abriebfest und zäh, aber anspruchsvoll: zieht Feuchtigkeit aus der Luft und muss vor dem Druck oft getrocknet werden.", uses:"Zahnräder, Scharniere, stark beanspruchte Funktions- und Maschinenteile"},
-    {name:"Resin", icon:"🧪", desc:"Flüssigharz für SLA/DLP-Drucker (kein FDM-Filament) – sehr hohe Detailgenauigkeit und glatte Oberfläche, aber spröder und im flüssigen Zustand reizend/giftig (Handschuhe & Belüftung nötig).", uses:"Miniaturen, Schmuck, Zahnmodelle, Teile mit sehr feinen Details"},
-    {name:"Sonstige", icon:"✨", desc:"Sammelkategorie für Spezialfilamente wie Holz-, Carbon-, Glow-in-the-dark- oder Metall-Composites. Eigenschaften hängen stark vom jeweiligen Zusatzstoff ab.", uses:"Optische/haptische Spezialeffekte, individuell je nach Filament nachlesen"}
-  ];
-  function buildFilamentTable(){
-    const rows = FILAMENT_INFO.map(f => `
-      <tr>
-        <td class="fname">${f.icon} ${escapeHtml(f.name)}</td>
-        <td>${escapeHtml(f.desc)}</td>
-        <td class="fuse">${escapeHtml(f.uses)}</td>
-      </tr>`).join('');
-    return `
-      <p>Übersicht der Filamente aus dem Auswahlmenü – Eigenschaften und wofür sie sich eignen.</p>
-      <div class="filament-table-wrap">
-        <table class="filament-table">
-          <thead><tr><th>Filament</th><th>Eigenschaften</th><th>Geeignet für</th></tr></thead>
-          <tbody>${rows}</tbody>
-        </table>
-      </div>
-      <div class="disclaimer">Allgemeine Richtwerte – Herstellerangaben zum jeweiligen Filament (z. B. Drucktemperatur) haben immer Vorrang.</div>
-    `;
-  }
-
-  function openTextModal(type){
-    if(type==='agb'){ $('#textModalTitle').textContent = 'AGB'; $('#textModalBody').innerHTML = AGB_HTML; }
-    else if(type==='filament'){ $('#textModalTitle').textContent = 'Filament-Guide'; $('#textModalBody').innerHTML = buildFilamentTable(); }
-    else{ $('#textModalTitle').textContent = 'README'; $('#textModalBody').innerHTML = README_HTML; }
-    textOverlay.classList.add('open');
-  }
-  function closeTextModal(){ textOverlay.classList.remove('open'); }
-  $('#agbLink').addEventListener('click', ()=>openTextModal('agb'));
-  $('#readmeLink').addEventListener('click', ()=>openTextModal('readme'));
-  $('#filamentLink').addEventListener('click', ()=>openTextModal('filament'));
-  $('#closeTextModal').addEventListener('click', closeTextModal);
-  $('#textCloseBtn2').addEventListener('click', closeTextModal);
-  textOverlay.addEventListener('click', (e)=>{ if(e.target === textOverlay) closeTextModal(); });
-
-  // Escape schließt jedes offene Overlay
-  document.addEventListener('keydown', (e)=>{
-    if(e.key !== 'Escape') return;
-    if(overlay.classList.contains('open')) closeModalFn();
-    if(supportOverlay.classList.contains('open')) closeSupportModal();
-    if(textOverlay.classList.contains('open')) closeTextModal();
-  });
-
-  (async function init(){
-    await loadRole();
-    await loadModels();
-    await loadSupport();
-    applyRoleUI();
-    render();
-  })();
-})();
-</script>
+<script src="/app.js" defer></script>
 </body>
 </html>

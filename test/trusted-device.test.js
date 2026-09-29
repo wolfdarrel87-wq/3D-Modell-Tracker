@@ -223,10 +223,42 @@ test('AF/AG/E: 29 Tage gültig, ab exakt 30 Tagen Code erforderlich', () =>
     browser.closeBrowser();
     assert.equal((await browser.get('/api/me')).status, 200, 'eine Millisekunde vor Ablauf: gültig');
 
+    const token = browser.cookie(DEVICE);
     clock.set(START + 30 * DAY);
     const expired = await browser.get('/api/me');
     assert.equal(expired.status, 401, 'nach exakt 30 Tagen: Code erforderlich');
     assert.equal(server.state.devices.find((d) => d.id === device.id).expiresAt, START + 30 * DAY);
+
+    // Serverseitige Grenze unabhängig vom Browser: Cookie wird trotz Ablauf mitgeschickt
+    for (const offset of [0, 1, 500, 60 * 1000]) {
+      clock.set(START + 30 * DAY + offset);
+      const forced = new Browser(server);
+      forced.setCookie(DEVICE, token);
+      assert.equal((await forced.get('/api/me')).status, 401, `Server lehnt ab bei +${offset} ms`);
+    }
+  }));
+
+test('Token-Rotation: erneute Code-Anmeldung ersetzt das bisherige Gerät dieses Browsers', () =>
+  withServer(async (server) => {
+    const browser = new Browser(server);
+    await login(server, browser, ANNA);
+    const firstToken = browser.cookie(DEVICE);
+    server.clock.advance(HOUR);
+    await login(server, browser, ANNA);
+    assert.notEqual(browser.cookie(DEVICE), firstToken);
+    assert.equal(activeDevices(server, ANNA).length, 1, 'kein zusätzliches aktives Gerät');
+
+    const replay = new Browser(server);
+    replay.setCookie(DEVICE, firstToken);
+    assert.equal((await replay.get('/api/me')).status, 401, 'alter Token ist widerrufen');
+
+    // Kontowechsel im selben Browser: Annas Gerät wird ebenfalls ersetzt
+    const annaToken = browser.cookie(DEVICE);
+    await login(server, browser, BEN);
+    const annaReplay = new Browser(server);
+    annaReplay.setCookie(DEVICE, annaToken);
+    assert.equal((await annaReplay.get('/api/me')).status, 401);
+    assert.equal((await browser.get('/api/me')).json.user.email, BEN);
   }));
 
 test('AH: tägliche Nutzung verlängert expiresAt NICHT (keine Sliding Expiration)', () =>

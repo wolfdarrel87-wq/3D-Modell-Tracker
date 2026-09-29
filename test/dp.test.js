@@ -263,13 +263,16 @@ test('Server übernimmt Zählerstand nach Neustart', async () => {
   const dataDir = tempDir();
   const clock = fakeClock();
   let server = await startServer({ dataDir, clock });
-  const anna = new Browser(server);
-  await login(server, anna, 'anna@example.test');
-  await createOrder(anna, { type: 'idea', name: 'Vorher', link: '' });
-  await server.stop();
-  server = await startServer({ dataDir, clock });
-  anna.server = server;
-  const after = await createOrder(anna, { type: 'idea', name: 'Nachher', link: '' });
-  assert.equal(after.dpRef, 'DP-2026-000002');
-  await server.stop();
+  try {
+    const anna = new Browser(server);
+    await login(server, anna, 'anna@example.test');
+    await createOrder(anna, { type: 'idea', name: 'Vorher', link: '' });
+    await server.stop();
+    server = await startServer({ dataDir, clock });
+    anna.server = server;
+    const after = await createOrder(anna, { type: 'idea', name: 'Nachher', link: '' });
+    assert.equal(after.dpRef, 'DP-2026-000002');
+  } finally {
+    await server.stop();
+  }
 });
