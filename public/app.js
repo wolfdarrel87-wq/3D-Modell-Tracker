@@ -748,7 +748,7 @@
           ${o.dpRef ? `<div class="dp-inline">${escapeHtml(o.dpRef)}</div>` : ''}
           <div class="print-title">${escapeHtml(o.name)}</div>
           ${cp.kind === 'admin' ? `<div class="owner-line">${escapeHtml(o.ownerEmail || 'ohne Besitzer')}</div>` : ''}
-          <div class="tag-row">${tagsHtml(o, { idea: o.type === 'idea', isPublic: o.isPublic })}</div>
+          <div class="tag-row">${tagsHtml(o, { idea: o.type === 'idea', isPublic: o.isPublic })}<span class="tag">Status: ${escapeHtml((STATUS[o.status] || STATUS.progress).label)}</span></div>
           ${progressBar(cp.progress)}
           <div class="print-meta">
             <span><strong>${Math.round(cp.progress)} %</strong></span>
@@ -833,7 +833,7 @@
           <div class="q-thumb">${mediaHtml(o.imageUrl, o.color)}</div>
           <div class="q-body">
             <div class="q-title">${escapeHtml(o.name)}</div>
-            <div class="q-sub"><strong>Dein Druck · Platz ${e.position}</strong>${o.dpRef ? `<span class="dp-inline">${escapeHtml(o.dpRef)}</span>` : ''}<span>${escapeHtml(o.filament)} · ${escapeHtml(o.color)}</span>${o.type === 'idea' ? '<span>💡 Idee</span>' : ''}</div>
+            <div class="q-sub"><strong>Dein Druck · Platz ${e.position}</strong>${o.dpRef ? `<span class="dp-inline">${escapeHtml(o.dpRef)}</span>` : ''}<span>${escapeHtml(o.filament)} · ${escapeHtml(o.color)}</span>${o.type === 'idea' ? '<span>💡 Idee</span>' : ''}<span>Status: ${escapeHtml((STATUS[o.status] || STATUS.progress).label)}</span></div>
           </div>
         </li>`;
     }

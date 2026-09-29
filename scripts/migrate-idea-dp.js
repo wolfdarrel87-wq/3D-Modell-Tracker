@@ -80,7 +80,9 @@ function main() {
     const backup = `${file}.bak-${new Date(now).toISOString().replace(/[:.]/g, '-')}`;
     fs.copyFileSync(file, backup, fs.constants.COPYFILE_EXCL);
     const plan = store.transaction((draft) => applyIdeaMigration(draft, now));
-    console.log(args.json ? JSON.stringify(plan, null, 2) : report(plan, { applied: true }));
+    const after = planIdeaMigration(store.state, now);
+    console.log(args.json ? JSON.stringify({ ...plan, after: { withDp: after.withDp, withoutDp: after.withoutDp } }, null, 2) : report(plan, { applied: true }));
+    if (!args.json) console.log(`\nNach der Migration: ${after.withDp} von ${after.totalIdeas} Ideen mit DP-Nummer, ${after.withoutDp} ohne.`);
     console.log(`\nBackup: ${backup}`);
   } finally {
     store.close();
