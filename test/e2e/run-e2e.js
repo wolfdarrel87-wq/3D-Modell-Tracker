@@ -177,6 +177,10 @@ test('Druckplatte im Browser (Chromium)', { timeout: 600000 }, async (t) => {
   const pageErrors = [];
   const httpErrors = [];
   const externalRequests = [];
+  let phase = 'Start'; // aktueller Testschritt – macht Fehlermeldungen eindeutig zuordenbar
+  t.beforeEach((ctx) => {
+    phase = ctx.name.split(':')[0];
+  });
   // Erwartete HTTP-Fehler: 401 = (noch) nicht angemeldet, 403 = absichtlich falsches Admin-Passwort im Test.
   const expectedHttp = (status, pathname) =>
     (status === 401 && pathname.startsWith('/api/')) || (status === 403 && pathname === '/api/admin/elevate');
@@ -194,7 +198,7 @@ test('Druckplatte im Browser (Chromium)', { timeout: 600000 }, async (t) => {
     page.on('response', (res) => {
       const url = new URL(res.url());
       if (!url.host.startsWith('localhost') && !url.host.startsWith('127.0.0.1')) return;
-      if (res.status() >= 400 && !expectedHttp(res.status(), url.pathname)) httpErrors.push(`${label}: ${res.status()} ${url.pathname}`);
+      if (res.status() >= 400 && !expectedHttp(res.status(), url.pathname)) httpErrors.push(`${label} [${phase}]: ${res.status()} ${url.pathname}`);
     });
     page.on('dialog', (d) => d.accept());
   };
@@ -337,6 +341,9 @@ test('Druckplatte im Browser (Chromium)', { timeout: 600000 }, async (t) => {
       assert.match(await doraPage.textContent('#queueView'), /Aktuell befinden sich 4 Drucke in der Warteschlange/);
       assert.ok((await doraPage.content()).includes('Benchy'));
       assert.equal(await doraPage.isVisible('#publicSection'), true);
+      // Erst alle Bilder fertig laden lassen (auch die im geschlossenen Druckstatus-Pop-up). Sonst kann eine
+      // späte Bildanfrage nach dem Umschalten auf privat kommen und bekommt dann korrekt 404.
+      await doraPage.waitForLoadState('networkidle');
 
       await apiLogin(apiServer, clara, CLARA);
       assert.equal((await clara.patch('/api/orders/ord_preview_claraBenchy', { isPublic: false })).status, 200);

@@ -86,7 +86,7 @@ Alle wurden im Branch behoben, jeweils mit Test.
 
 ```
 npm test               # tests 91 · pass 91 · fail 0 · skipped 0 · cancelled 0 · todo 0
-npm run test:e2e       # tests 19 · pass 19 · fail 0 · skipped 0 · cancelled 0 · todo 0
+npm run test:e2e       # tests 20 · pass 20 · fail 0 · skipped 0 · cancelled 0 · todo 0   (Stand nach Design-Nachtrag, 8 Läufe in Folge grün)
 ```
 
 | Datei | total | pass | fail | skip |
@@ -98,8 +98,8 @@ npm run test:e2e       # tests 19 · pass 19 · fail 0 · skipped 0 · cancelled
 | `test/store.test.js` | 5 | 5 | 0 | 0 |
 | `test/trusted-device.test.js` | 24 | 24 | 0 | 0 |
 | **`npm test` gesamt** | **91** | **91** | **0** | **0** |
-| `test/e2e/run-e2e.js` (2 Browser-Szenarien + 17 Schritte) | 19 | 19 | 0 | 0 |
-| **Alles zusammen** | **110** | **110** | **0** | **0** |
+| `test/e2e/run-e2e.js` (2 Browser-Szenarien + 18 Schritte) | 20 | 20 | 0 | 0 |
+| **Alles zusammen** | **111** | **111** | **0** | **0** |
 
 Nicht ausgeführt: Tests gegen den echten Produktivcode (v146), das echte Cloudflare, echte Mails oder echte Drucker. Nichts davon ist in dieser Umgebung vorhanden, und nichts davon durfte angefasst werden.
 
@@ -243,7 +243,7 @@ Quellen: [Cloudflare One – Session management](https://developers.cloudflare.c
 30. **Welche Module sind für einen selektiven Port geeignet?** Privacy-Projektion, Trusted-Device-Logik, DP-Ideen-Logik und die passenden Tests, plus einzelne Härtungen als Muster (F1).
 31. **Welche Dateien wurden geändert?** Siehe Teil H.
 32. **Welche Tests wurden ergänzt?** Siehe C3 (27 neue Server-Tests, 6 neue bzw. erweiterte E2E-Schritte).
-33. **Tests total/pass/fail?** `npm test`: 91 / 91 / 0 (skip 0). E2E: 19 / 19 / 0 (skip 0). Zusammen 110 / 110 / 0 / 0.
+33. **Tests total/pass/fail?** `npm test`: 91 / 91 / 0 (skip 0). E2E: 20 / 20 / 0 (skip 0). Zusammen 111 / 111 / 0 / 0.
 34. **Wurden echte Mails gesendet?** **NEIN.** Es gibt nur den Dev-Postausgang, der Produktions-Mailtransport ist gesperrt.
 35. **Wurde ein echter Druck gestartet?** **NEIN.** Dieser Build hat keine Druckeranbindung.
 36. **Wurde Produktion verändert?** **NEIN.** Es gab keinen Zugriff auf Produktivsystem, Produktionsdaten, Cloudflare, Mail oder Bambu. Gepusht wurde nur auf diesen Feature-Branch.
@@ -281,6 +281,17 @@ Quellen: [Cloudflare One – Session management](https://developers.cloudflare.c
 | `docs/REVIEW-BERICHT.md` | dieser Bericht |
 
 ---
+
+## Nachtrag 30.09.2026 – Design wie die Original-Druckplatte
+
+Auf Wunsch: Das Design bleibt wie bei der Original-Druckplatte, nur die Funktionen kommen dazu. Was ein eigenes Fenster braucht, ist ein Pop-up im Stil der vorhandenen Dialoge.
+
+- **Hauptseite** wieder im Original-Aufbau: Kopfzeile mit Filter-Chips und Rollen-Umschalter, Banner mit Original-Texten, Karten-Aufbau, Footer. Der zusätzliche Mobil-Sonderfall (nicht klebende Kopfzeile) ist entfernt.
+- **Pop-ups:** Druckstatus (aktueller Druck + Warteschlange, über einen Chip), Anmeldung (liegt über der Seite statt eigener Vollbildseite), Benutzer & Geräte (Admin, Chip), Sichtbarkeit eines eigenen Auftrags, dazu wie gehabt Profil & Geräte und Admin-Passwort.
+- **Karten:** DP-Nummer, „Öffentlich“ und Warteschlangenplatz als normale Tags; Besitzer (Admin) als Notizzeile.
+- **Server unverändert**, Datenschutz-Projektionen unverändert.
+- **Tests:** `npm test` 91/91. E2E 20/20, **8 Läufe in Folge grün**. Angepasst (Struktur, keine Prüfung abgeschwächt): `waitForApp` wartet auf den Druckstatus-Chip; E9 öffnet die Benutzerverwaltung über das Pop-up; die Prüfung „Alle Druckaufträge“ ist durch „Admin-Modus“ ersetzt (Überschrift wieder original „Druckaufträge“). Neu: **E12** (Druckstatus- und Sichtbarkeits-Pop-up, inkl. 360 px). HTTP-Fehler im Browser werden jetzt mit dem Testschritt protokolliert.
+- **Zwei seltene Test-Wettläufe gefunden und behoben:** Schaltet ein Nutzer ein Modell auf privat, während eine andere offene Seite dessen Bild noch lädt, antwortet der Server korrekt mit 404. Das trat auf in E12 (Annas Kabelclip-Set, Doras Seite wird jetzt vorher geschlossen) und in E8 (Claras Benchy, Doras Seite wartet jetzt `networkidle` ab, bevor umgeschaltet wird). Kein Fehler der Anwendung, sondern gewolltes Datenschutzverhalten, das die strenge „keine HTTP-Fehler“-Prüfung zufällig traf.
 
 ## STOPP
 

@@ -16,6 +16,7 @@ Der Prototyp war eine einzelne HTML-Datei. Alle Daten lagen in einem geteilten `
 - **DP-Auftragsnummern für Ideen:** Auch Ideen erhalten `DP-JJJJ-NNNNNN` aus demselben atomaren Zähler. Für Alt-Ideen gibt es eine Migration mit Dry-Run.
 - **Vertrauenswürdige Geräte:** Nach einmaliger Anmeldung bleibt der Browser genau 30 Tage vertrauenswürdig. Links aus Druckplatte-Mails brauchen dann keinen neuen Code und legen kein neues Gerät an. Die Geräte lassen sich im Profil verwalten. Mit Cloudflare Access gibt es **keinen zweiten Code**: Die von Access bestätigte Identität registriert das Gerät (siehe unten).
 - **Admin:** Der Admin sieht alles, wie bisher. Er braucht dafür zusätzlich das Admin-Passwort, das serverseitig in jeder Sitzung geprüft wird und den alten Client-PIN ersetzt.
+- **Design wie bisher:** Die Seite sieht aus wie die Original-Druckplatte (Kopfzeile, Banner, Karten, Footer). Neue Funktionen stecken in Pop-ups im gleichen Stil: **Druckstatus** (aktueller Druck + Warteschlange, Chip „🖨️ Dein Platz“ bzw. „🖨️ Druckstatus“), **Anmeldung**, **Profil & Geräte** (👤), **Sichtbarkeit** eines eigenen Auftrags (🔒/🌍 auf der Karte) und für den Admin **Benutzer & Geräte** (Chip „👥 Benutzer“). DP-Nummer, „Öffentlich“ und Warteschlangenplatz stehen als normale Tags auf den Karten; unter den Aufträgen folgt „🌍 Öffentliche Modelle“.
 
 ## Schnellstart (Preview)
 
