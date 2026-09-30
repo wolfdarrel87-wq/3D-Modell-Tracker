@@ -1,11 +1,11 @@
 # Abschlussbericht – Master-Auftrag Druckplatte (Preview)
 
-Branch: `claude/amazing-galileo-jq5avw` · Stand: 29.09.2026 · **Status: Preview, nicht in Produktion deployt**
+Branch: `claude/amazing-galileo-jq5avw` · Stand: 30.09.2026 (Umsetzung 29.09.2026) · **Status: Preview, nicht in Produktion deployt**
 
 ## Vorab: Was lag vor, was wurde gebaut?
 
 - Das GitHub-Repository enthielt nur den **Prototyp „Druckplatte 3.0“**: eine einzelne `index.html` im Claude-Artifact-Stil. Alle Daten lagen im geteilten `window.storage` und damit vollständig in **jedem** Browser. Admin-Schutz war ein im Code sichtbarer PIN. Das zweite Repo `3d-Modell-ideaPAGE` ist ebenfalls nur ein statischer Prototyp.
-- **Nicht im Repo** und für diese Sitzung nicht erreichbar ist das Produktivsystem auf dem Raspberry Pi. Dazu gehören Bambu/A2L, Bambuddy, Reports, Archiv, Filament-, Preis- und Kostenlogik, Control Center, VPN-Webseite, bestehende Mail-Benachrichtigungen, die bestehende „Öffentliche Modelle“-Seite und die Cloudflare-Access-Konfiguration. Diese Teile wurden **weder geändert noch getestet**.
+- **Nicht im Repo** und für diese Sitzung nicht erreichbar ist das Produktivsystem auf dem Raspberry Pi. Dazu gehören Bambu/A2L, Bambuddy, Reports, Archiv, Filament-, Preis- und Kostenlogik, Control Center, VPN-Webseite, bestehende Mail-Benachrichtigungen, die bestehende „Öffentliche Modelle“-Seite und die Cloudflare-Access-Konfiguration. Diese Teile wurden **weder geändert noch getestet**. Laut deiner privaten Notion-Doku („Zweites Gehirn“ → Druckplatte, Stand 28.09.2026) läuft dort Release v146 mit 243 bestandenen Tests. Die Notion-Seiten Druckplatte, Offene Aufgaben und Cloudflare & Domain sind auf diesen Preview-Stand aktualisiert (30.09.2026).
 - Die Datenschutz- und Geräte-Anforderungen lassen sich ohne Server nicht erfüllen, weil private Daten gar nicht erst in den Browser dürfen. Deshalb wurde im Repo eine **isolierte Preview mit eigenem, abhängigkeitsfreiem Node-Server** gebaut. Die bisherige Oberfläche und alle Prototyp-Funktionen bleiben erhalten: Einreichen, Ideen, Support, Admin-Bearbeitung, Bild per URL/Datei/Drag & Drop/Strg+V, AGB, README und Filament-Guide.
 - Für die Übernahme in die echte Produktion muss der Produktivcode verfügbar sein, zum Beispiel als privates GitHub-Repo ohne Secrets und Daten. Die Module `server/domain/privacy.js`, `server/domain/dpRefs.js` und `server/auth/*` samt Tests sind so geschrieben, dass sie sich übertragen lassen.
 
@@ -217,7 +217,7 @@ Optional lässt sich über `CF_ACCESS_TEAM_DOMAIN` und `CF_ACCESS_AUD` eine Prü
 
 ## 32. Welche aktuelle Cloudflare-Access-Session-Dauer wurde festgestellt?
 
-**Keine, nicht feststellbar.** Es gibt keinen Zugriff auf das Cloudflare-Dashboard, und die Konfiguration liegt nicht im Repo. Laut Cloudflare-Doku gilt ohne gesetzte Policy- oder App-Sitzungsdauer ein Standard von **24 Stunden** für das `CF_Authorization`-Cookie.
+**Keine, nicht feststellbar.** Es gibt keinen Zugriff auf das Cloudflare-Dashboard, die Konfiguration liegt nicht im Repo, und auch die Notion-Doku (Seite „Cloudflare & Domain“, Stand 18.09.2026) nennt keinen Wert. Dort ist nur vermerkt, dass Cloudflare Access die Anwendung schützt und ein eigenes Login-Gateway auf Cloudflare Pages existiert. Laut Cloudflare-Doku gilt ohne gesetzte Policy- oder App-Sitzungsdauer ein Standard von **24 Stunden** für das `CF_Authorization`-Cookie.
 
 ## 33. Muss sie für die 30-Tage-Funktion geändert werden?
 
