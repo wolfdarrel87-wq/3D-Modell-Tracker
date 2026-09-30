@@ -265,7 +265,7 @@ Quellen: [Cloudflare One – Session management](https://developers.cloudflare.c
 | `server/domain/support.js` | Kennzeichnung „PROTOTYP – nicht portieren“ |
 | `server/auth/cfAccess.js` | liefert zusätzlich `iat` |
 | `server/util/http.js` | `buildHtmlCsp` (ohne externe Hosts) |
-| `public/index.html` | lokale `@font-face` statt Google Fonts, Access-Hinweisbereich, URL-Feld nur mit Allowlist, `.btn` ohne Unterstreichung |
+| `public/index.html` | lokale `@font-face` statt Google Fonts, Access-Hinweisbereich, URL-Feld nur mit Allowlist, `.btn` ohne Unterstreichung, Untertitel „Öffentliche Modelle“ (enthält jetzt auch eigene) |
 | `public/app.js` | Cloudflare-Anmeldung ohne Code, Hinweise „Neu anmelden“/„Abgemeldet“, keine automatische Neuregistrierung nach Abmelden, Bild-URL-Richtlinie |
 | `scripts/preview.js` | `ALLOWED_ORIGINS` für `127.0.0.1` in der Preview |
 | `README.md` | neue Variablen, Cloudflare-Modell, Härtungen, Status |
