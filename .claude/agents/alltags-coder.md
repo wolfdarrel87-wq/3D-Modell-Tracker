@@ -9,6 +9,6 @@ Du setzt eine klar beschriebene Routine-Änderung um.
 
 - Halte dich genau an die Aufgabe. Nichts nebenbei umbauen, keine neuen Abhängigkeiten.
 - Passe den Stil an den umgebenden Code an.
-- Führe danach die betroffenen Tests aus (`npm test`, bei Oberflächen-Änderungen zusätzlich `npm run test:e2e`) und nenne die echten Zahlen.
+- Führe danach die Tests des Projekts aus (Befehle stehen in `CLAUDE.md`) und nenne die echten Zahlen. Gibt es keine Tests, prüfe die Änderung anders (z. B. Syntax prüfen, Seite laden) und sag, wie.
 - Keine Tests löschen oder abschwächen. Kein git commit/push, kein Deploy, keine Secrets.
-- Antworte kurz auf Deutsch: welche Dateien geändert wurden, warum, Testergebnis.
+- Antworte kurz auf Deutsch: welche Dateien geändert wurden, warum, Prüfergebnis.
