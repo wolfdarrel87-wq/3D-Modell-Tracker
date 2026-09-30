@@ -48,15 +48,26 @@ function unblockUser(draft, userId) {
   return user;
 }
 
+/**
+ * Cloudflare-Modus: Access-Anmeldungen bis einschließlich `now` dürfen kein neues Gerät mehr
+ * registrieren (nach Abmelden/Sicherheitsreset ist eine NEUE Access-Anmeldung nötig).
+ */
+function requireReauth(draft, userId, now) {
+  const user = draft.users.find((u) => u.id === userId);
+  if (user) user.accessReauthAfter = now;
+}
+
 /** Sicherheitsreset: alle Geräte + Sessions des Benutzers widerrufen. */
 function resetUserDevices(draft, userId, now) {
   requireUser(draft, userId);
+  requireReauth(draft, userId, now);
   return revokeAllDevicesOfUser(draft, userId, now);
 }
 
 /**
  * Löscht das Konto: Geräte, Sessions und offene Codes werden entfernt, alte Cookies sind
- * damit wertlos. Aufträge bleiben für den Admin erhalten, verlieren aber den Besitzer.
+ * damit wertlos. Aufträge bleiben für den Admin erhalten (inkl. DP-Nummer), verlieren aber den
+ * Besitzer und sind ab sofort PRIVAT – ein gelöschtes Konto veröffentlicht nichts mehr.
  */
 function deleteUser(draft, userId, now) {
   const user = requireUser(draft, userId);
@@ -68,6 +79,7 @@ function deleteUser(draft, userId, now) {
     if (order.ownerId === userId) {
       order.ownerId = null;
       order.ownerDeletedAt = now;
+      order.isPublic = false;
     }
   }
   for (const message of draft.support) {
@@ -89,4 +101,4 @@ function adminUserList(state, now) {
     .sort((a, b) => a.email.localeCompare(b.email));
 }
 
-module.exports = { normalizeEmail, findUserByEmail, findOrCreateUser, blockUser, unblockUser, resetUserDevices, deleteUser, adminUserList };
+module.exports = { normalizeEmail, findUserByEmail, findOrCreateUser, requireReauth, blockUser, unblockUser, resetUserDevices, deleteUser, adminUserList };

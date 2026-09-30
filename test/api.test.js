@@ -4,7 +4,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const crypto = require('node:crypto');
 
-const { ADMIN_EMAIL, TINY_PNG, START, startServer, Browser, login, elevate, createOrder, latestMail } = require('./helpers');
+const { ADMIN_EMAIL, TINY_PNG, START, startServer, Browser, login, elevate, createOrder, latestMail, accessFixture } = require('./helpers');
 const { loadConfig } = require('../server/config');
 const { deviceLabelFromUserAgent } = require('../server/util/useragent');
 
@@ -62,7 +62,7 @@ test('Eingaben: JSON-Pflicht, Größenlimit, Validierung', () =>
     await login(server, browser, 'anna@example.test');
     const form = await fetch(`${server.baseUrl}/api/support`, {
       method: 'POST',
-      headers: { cookie: browser.cookieHeader(), 'content-type': 'application/x-www-form-urlencoded' },
+      headers: { cookie: browser.cookieHeader(), 'content-type': 'application/x-www-form-urlencoded', origin: server.origin },
       body: 'message=x',
     });
     assert.equal(form.status, 415);
@@ -173,29 +173,6 @@ test('Gerätebezeichnung: grob, ohne Fingerprint', () => {
   assert.equal(deviceLabelFromUserAgent(''), 'Browser · Unbekanntes System');
 });
 
-// ---------------------------------------------------------------- Cloudflare Access (optional)
-
-function accessFixture() {
-  const { privateKey, publicKey } = crypto.generateKeyPairSync('rsa', { modulusLength: 2048 });
-  const jwk = { ...publicKey.export({ format: 'jwk' }), kid: 'test-key', alg: 'RS256', use: 'sig' };
-  const teamDomain = 'druckplatte-test.cloudflareaccess.com';
-  const aud = 'aud-druckplatte-test';
-  const fetchImpl = async (url) => {
-    assert.equal(url, `https://${teamDomain}/cdn-cgi/access/certs`);
-    return { ok: true, status: 200, json: async () => ({ keys: [jwk] }) };
-  };
-  function sign(payload, key = privateKey) {
-    const header = Buffer.from(JSON.stringify({ alg: 'RS256', kid: 'test-key', typ: 'JWT' })).toString('base64url');
-    const body = Buffer.from(JSON.stringify(payload)).toString('base64url');
-    const signature = crypto.sign('RSA-SHA256', Buffer.from(`${header}.${body}`), key).toString('base64url');
-    return `${header}.${body}.${signature}`;
-  }
-  function token(email, { exp = Math.floor(START / 1000) + 3600, audience = aud, iss = `https://${teamDomain}`, key } = {}) {
-    return sign({ email, aud: [audience], iss, exp, iat: Math.floor(START / 1000), type: 'app' }, key);
-  }
-  return { teamDomain, aud, fetchImpl, token };
-}
-
 test('Cloudflare Access: ohne gültiges Access-JWT kein Zugriff – Geräte-Cookie ersetzt Access nie', async () => {
   const access = accessFixture();
   const server = await startServer({ env: { CF_ACCESS_TEAM_DOMAIN: access.teamDomain, CF_ACCESS_AUD: access.aud }, fetchImpl: access.fetchImpl });
@@ -204,10 +181,11 @@ test('Cloudflare Access: ohne gültiges Access-JWT kein Zugriff – Geräte-Cook
     const jwt = (email, opts) => ({ headers: { 'cf-access-jwt-assertion': access.token(email, opts) } });
     const ANNA = 'anna@example.test';
 
-    assert.equal((await browser.post('/api/auth/request-code', { email: ANNA })).status, 401, 'ohne Access-JWT');
-    assert.equal((await browser.post('/api/auth/request-code', { email: ANNA }, jwt(ANNA))).status, 200);
-    const code = /(\d{6})/.exec(latestMail(server, { to: ANNA, kind: 'login_code' }).text)[1];
-    assert.equal((await browser.post('/api/auth/verify-code', { email: ANNA, code }, jwt(ANNA))).status, 200);
+    // Anpassung (Review, Punkt 4): Mit Cloudflare Access gibt es keinen zweiten Druckplatte-Code mehr.
+    // Früher: request-code/verify-code zusätzlich zum Access-Code. Jetzt: access-session.
+    assert.equal((await browser.post('/api/auth/access-session')).status, 401, 'ohne Access-JWT');
+    assert.equal((await browser.post('/api/auth/access-session', {}, jwt(ANNA))).status, 200);
+    assert.equal(server.outbox().length, 0, 'kein E-Mail-Code von Druckplatte');
 
     assert.equal((await browser.get('/api/me', jwt(ANNA))).status, 200, 'Access + Gerät');
     browser.closeBrowser();

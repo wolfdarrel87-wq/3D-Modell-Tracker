@@ -2,6 +2,12 @@
 
 Branch: `claude/amazing-galileo-jq5avw` · Stand: 30.09.2026 (Umsetzung 29.09.2026) · **Status: Preview, nicht in Produktion deployt**
 
+> **Aktualisiert durch die Review-Runde → [`REVIEW-BERICHT.md`](REVIEW-BERICHT.md).** Dieser Bericht beschreibt die erste Umsetzung.
+> Überholt bzw. geändert sind: Cloudflare-Anmeldung ohne zweiten Code (31, 33, 34), Fail-closed-Start in Produktion,
+> atomarer Store-Lock (14), strikte Origin-Prüfung, externe Bild-URLs nur per Allowlist + strengere CSP + lokale Schriften,
+> gelöschte Konten → Aufträge privat (29), eigene öffentliche Modelle in „Öffentliche Modelle“ (7) und die Testzahlen (37/38).
+> **Dieser Branch ist NICHT direkt produktionskompatibel und wurde NICHT deployt.**
+
 ## Vorab: Was lag vor, was wurde gebaut?
 
 - Das GitHub-Repository enthielt nur den **Prototyp „Druckplatte 3.0“**: eine einzelne `index.html` im Claude-Artifact-Stil. Alle Daten lagen im geteilten `window.storage` und damit vollständig in **jedem** Browser. Admin-Schutz war ein im Code sichtbarer PIN. Das zweite Repo `3d-Modell-ideaPAGE` ist ebenfalls nur ein statischer Prototyp.
@@ -75,6 +81,8 @@ Die Public-Allowlist in `PUBLIC_MODEL_FIELDS` umfasst exakt `name`, `color`, `fi
 
 **Nicht** enthalten sind: DP-Nummer, IDs, Besitzer, E-Mail, Notiz, Status und Zeiten. Das Bild wird über einen zufälligen Schlüssel geladen, der nicht aus der Auftrags-ID ableitbar ist.
 
+*Review-Runde:* `link` wird öffentlich nur als MakerWorld-Link ausgegeben, externe Bild-URLs nur von freigegebenen Hosts. Eigene öffentliche Modelle erscheinen jetzt ebenfalls in „Öffentliche Modelle“, und zwar in derselben Allowlist-Form.
+
 ## 8. Wie wird die Druckwarteschlange anonymisiert?
 
 Jede Position wird einzeln projiziert: eigen → volle eigene Daten, fremd-öffentlich → Allowlist, fremd-privat → `private_queue_slot`. Die Anzahl und die eigene Position bleiben sichtbar. Hat jemand keinen eigenen Auftrag, sieht er „Aktuell befinden sich 4 Drucke in der Warteschlange.“ Mindestens drei aufeinanderfolgende private Plätze fasst die Oberfläche zusammen, etwa „Plätze 1–3 · 3 private Drucke“.
@@ -126,7 +134,7 @@ Danach wurde die Migration **nur auf den Preview-Daten** angewendet, mit Backup.
 
 - Transaktionen sind synchron und laufen per Copy-on-Write: Der Node-Prozess führt sie strikt nacheinander aus. Vergabe und Speichern bilden eine Einheit.
 - Schlägt das Speichern fehl, wird alles zurückgerollt. Es entsteht keine Lücke und keine verbrauchte Nummer.
-- Eine Lock-Datei verhindert einen zweiten Prozess auf denselben Daten.
+- Eine Lock-Datei verhindert einen zweiten Prozess auf denselben Daten. *Review-Runde:* Die Übernahme eines verwaisten Locks ist jetzt atomar (Wiederherstellungs-Lock per `O_EXCL` + erneute Prüfung). Zuvor konnten mehrere Prozesse gleichzeitig „gewinnen“; im Test mit altem Code waren es 4 von 6.
 - Die nächste Nummer ist `max(Zählerstand, höchste vergebene Nummer) + 1`, zusätzlich mit Eindeutigkeitsprüfung.
 - Getestet mit 40 gleichzeitigen Einreichungen (Ideen und Aufträge gemischt): 40 eindeutige, lückenlose Nummern.
 
@@ -148,7 +156,7 @@ Der Link enthält nur einen Pfad, etwa `/auftrag/DP-2026-000007` oder `/support`
 
 ## 18. Wie wird verhindert, dass jede Mail ein neues Gerät erzeugt?
 
-`registerDevice()` wird **ausschließlich** in `POST /api/auth/verify-code` nach einem korrekten Code aufgerufen. Die Identitätsprüfung legt nie Geräte an, sie liest nur und legt höchstens eine neue Sitzung an. Die Tests AC–AE sowie E5 und E6 im Browser prüfen: Nach Status-, Fertigstellungs-, Ideen- und Support-Mail bleiben Geräteanzahl und Geräte-ID gleich, und es wird kein Code verschickt.
+`registerDevice()` wird **ausschließlich** nach einer erfolgreichen Anmeldung aufgerufen: `POST /api/auth/verify-code` nach korrektem Code, oder (Review-Runde, Cloudflare-Modus) `POST /api/auth/access-session` nach einer frischen Access-Anmeldung. Die Identitätsprüfung legt nie Geräte an, sie liest nur und legt höchstens eine neue Sitzung an. Die Tests AC–AE sowie E5 und E6 im Browser prüfen: Nach Status-, Fertigstellungs-, Ideen- und Support-Mail bleiben Geräteanzahl und Geräte-ID gleich, und es wird kein Code verschickt.
 
 ## 19. Wo wird der Trusted-Device-Token gespeichert?
 
@@ -205,7 +213,7 @@ Test AS prüft das auch für den Fall eines nur im Datenbestand gesperrten Konto
 
 ## 29. Verhalten bei gelöschten Benutzern
 
-Konto, Geräte, Sitzungen und offene Codes werden sofort gelöscht. Ein alter Cookie ist damit wertlos und ergibt 401 (Test AT). Die Aufträge bleiben für den Admin erhalten, jetzt ohne Besitzer.
+Konto, Geräte, Sitzungen und offene Codes werden sofort gelöscht. Ein alter Cookie ist damit wertlos und ergibt 401 (Test AT). Die Aufträge bleiben für den Admin erhalten, jetzt ohne Besitzer. *Review-Runde:* Sie werden zusätzlich auf `isPublic=false` gesetzt (DELETE1–5).
 
 ## 30. Verhalten für Admins
 
@@ -213,7 +221,7 @@ Die Admin-Rolle kommt nur aus `ADMIN_EMAILS`. Admin-Rechte erfordern **zusätzli
 
 ## 31. Zusammenspiel mit Cloudflare Access
 
-Optional lässt sich über `CF_ACCESS_TEAM_DOMAIN` und `CF_ACCESS_AUD` eine Prüfung aktivieren. Dann braucht jede API-Anfrage ein gültiges Cloudflare-Access-JWT: Signatur (RS256 über die Team-JWKS), `aud`, `iss`, `exp` und `nbf` werden geprüft. Session und Gerät werden nur akzeptiert, wenn die Access-E-Mail zum Druckplatte-Konto passt. Ein Druckplatte-Cookie ersetzt Cloudflare Access also **nie** und umgeht es auch nicht. Getestet ist das mit selbst signierten Test-JWTs.
+*Review-Runde:* In Produktion ist die Prüfung jetzt **Pflicht** (fail-closed). Mit Access gibt es **keinen zweiten Druckplatte-Code** mehr (`AUTH_MODE=cloudflare-access`). Details stehen im REVIEW-BERICHT. Ursprünglicher Stand: Optional ließ sich über `CF_ACCESS_TEAM_DOMAIN` und `CF_ACCESS_AUD` eine Prüfung aktivieren. Dann braucht jede API-Anfrage ein gültiges Cloudflare-Access-JWT: Signatur (RS256 über die Team-JWKS), `aud`, `iss`, `exp` und `nbf` werden geprüft. Session und Gerät werden nur akzeptiert, wenn die Access-E-Mail zum Druckplatte-Konto passt. Ein Druckplatte-Cookie ersetzt Cloudflare Access also **nie** und umgeht es auch nicht. Getestet ist das mit selbst signierten Test-JWTs.
 
 ## 32. Welche aktuelle Cloudflare-Access-Session-Dauer wurde festgestellt?
 
@@ -238,7 +246,7 @@ In Cloudflare Zero Trust:
 - Admin, Control Center und VPN als **eigene** Access-Apps mit kürzerer Dauer betreiben.
 - Den Druckplatte-eigenen Geräte-Widerruf zusätzlich nutzen.
 
-**Wichtig für die Produktions-Integration:** Kommt der „bestehende E-Mail-Code“ in Produktion von Cloudflare, sollte Druckplatte **keinen zweiten** Code verlangen. Sonst gibt es am ersten Tag zwei Codes, und die zwei 30-Tage-Uhren laufen versetzt. Dann sollte Druckplatte das Gerät bei der ersten frisch per Access authentifizierten Anfrage registrieren, die bestehende Handoff-Logik. Die 30-Tage-Grenze würde beim Ablauf per Access-Logout einen neuen Access-Code erzwingen. Das lässt sich erst mit dem Produktivcode sauber umsetzen.
+**Wichtig für die Produktions-Integration (in der Review-Runde umgesetzt, siehe REVIEW-BERICHT):** Kommt der „bestehende E-Mail-Code“ in Produktion von Cloudflare, sollte Druckplatte **keinen zweiten** Code verlangen. Sonst gibt es am ersten Tag zwei Codes, und die zwei 30-Tage-Uhren laufen versetzt. Dann sollte Druckplatte das Gerät bei der ersten frisch per Access authentifizierten Anfrage registrieren, die bestehende Handoff-Logik. Die 30-Tage-Grenze würde beim Ablauf per Access-Logout einen neuen Access-Code erzwingen. Das lässt sich erst mit dem Produktivcode sauber umsetzen.
 
 Quellen: [Cloudflare One – Session management](https://developers.cloudflare.com/cloudflare-one/access-controls/access-settings/session-management/), [Cloudflare One – Authorization cookie](https://developers.cloudflare.com/cloudflare-one/access-controls/applications/http-apps/authorization-cookie/). Die Doku-Seiten selbst waren aus der Sandbox gesperrt. Die Angaben stammen aus der Websuche über diese Seiten und sollten vor der Umstellung im Dashboard gegengeprüft werden.
 
@@ -260,6 +268,8 @@ Vorher gab es im Repo keine Tests. Es wurden also keine bestehenden Tests gelös
 Zusätzlich wurde per **Mutationstest** geprüft, dass die Tests echte Fehler finden. 13 absichtlich eingebaute Fehler, etwa Sliding Expiration, DP-Nummer in der Allowlist oder Code-Bypass, wurden alle erkannt.
 
 ## 37./38. Testergebnis
+
+*Stand der ersten Umsetzung. Aktuelle Zahlen nach der Review-Runde: `npm test` 91/91, `npm run test:e2e` 19/19 (siehe REVIEW-BERICHT).*
 
 | Suite | bestanden | fehlgeschlagen |
 |---|---|---|

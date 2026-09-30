@@ -58,7 +58,8 @@ function createCfAccessVerifier({ teamDomain, aud, fetchImpl = globalThis.fetch 
     if (!auds.includes(aud)) return { ok: false, reason: 'audience' };
     const email = String(payload.email || '').trim().toLowerCase();
     if (!email) return { ok: false, reason: 'no_email' };
-    return { ok: true, email };
+    // iat = Ausstellungszeitpunkt; dient als Frische-Nachweis für die Geräteregistrierung.
+    return { ok: true, email, iat: typeof payload.iat === 'number' ? payload.iat : null };
   }
 
   async function verifyRequest(req, cookies, nowMs) {

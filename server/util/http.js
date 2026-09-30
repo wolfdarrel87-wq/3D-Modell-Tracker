@@ -17,18 +17,29 @@ const SECURITY_HEADERS = {
   'Permissions-Policy': 'camera=(), microphone=(), geolocation=()',
 };
 
-const HTML_CSP = [
-  "default-src 'self'",
-  "script-src 'self'",
-  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-  'font-src https://fonts.gstatic.com',
-  "img-src 'self' data: https:",
-  "connect-src 'self'",
-  "frame-ancestors 'none'",
-  "base-uri 'none'",
-  "form-action 'self'",
-  "object-src 'none'",
-].join('; ');
+/**
+ * CSP der Oberfläche: Skripte, Styles, Schriften und Bilder nur von der eigenen Origin
+ * (Bilder zusätzlich als data: für die Upload-Vorschau). Externe Bildhosts nur, wenn sie
+ * ausdrücklich per IMAGE_HOST_ALLOWLIST freigegeben sind. Keine externen Schriften.
+ * 'unsafe-inline' bleibt nur für style-Attribute (Farbpunkte, Fortschrittsbalken).
+ */
+function buildHtmlCsp({ imageHosts = [] } = {}) {
+  const imgSources = ["'self'", 'data:', ...imageHosts.map((h) => `https://${h}`)];
+  return [
+    "default-src 'self'",
+    "script-src 'self'",
+    "style-src 'self' 'unsafe-inline'",
+    "font-src 'self'",
+    `img-src ${imgSources.join(' ')}`,
+    "connect-src 'self'",
+    "frame-ancestors 'none'",
+    "base-uri 'none'",
+    "form-action 'self'",
+    "object-src 'none'",
+  ].join('; ');
+}
+
+const HTML_CSP = buildHtmlCsp();
 
 function parseCookies(header) {
   const out = Object.create(null);
@@ -130,4 +141,4 @@ function sendBuffer(res, status, buffer, contentType, extraHeaders = {}, cookies
   res.end(buffer);
 }
 
-module.exports = { HttpError, SECURITY_HEADERS, HTML_CSP, parseCookies, serializeCookie, readJsonBody, sendJson, sendBuffer };
+module.exports = { HttpError, SECURITY_HEADERS, HTML_CSP, buildHtmlCsp, parseCookies, serializeCookie, readJsonBody, sendJson, sendBuffer };

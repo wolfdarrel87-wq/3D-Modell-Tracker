@@ -36,6 +36,8 @@
     pollCount: 0,
     loginEmail: '',
     highlight: null,
+    imageUrlHosts: [],
+    accessAttempted: false,
   };
 
   const $ = (sel) => document.querySelector(sel);
@@ -147,7 +149,7 @@
     } catch {
       /* leere Antwort */
     }
-    const authCall = path.startsWith('/api/auth/request-code') || path.startsWith('/api/auth/verify-code');
+    const authCall = ['/api/auth/request-code', '/api/auth/verify-code', '/api/auth/access-session'].some((p) => path.startsWith(p));
     if (res.status === 401 && !authCall) {
       onLoggedOut(data.error === 'access_required');
       throw new ApiError(401, data.error, data.message || 'Anmeldung erforderlich');
@@ -171,16 +173,53 @@
 
   function showGate(accessRequired) {
     $('#loginGate').hidden = false;
-    $('#emailForm').hidden = false;
+    $('#accessGate').hidden = true;
+    $('#emailForm').hidden = true;
     $('#codeForm').hidden = true;
     setGateError(accessRequired ? 'Die Cloudflare-Access-Anmeldung ist abgelaufen – bitte Seite neu laden.' : '');
     fetch('/api/health')
       .then((r) => r.json())
       .then((h) => {
-        $('#g-preview-note').hidden = h.env !== 'preview';
+        $('#g-preview-note').hidden = h.env !== 'preview' || h.authMode !== 'email-code';
+        if (h.authMode === 'cloudflare-access') {
+          accessLogin(accessRequired);
+        } else {
+          $('#emailForm').hidden = false;
+          setTimeout(() => $('#g-email').focus(), 50);
+        }
       })
-      .catch(() => {});
-    setTimeout(() => $('#g-email').focus(), 50);
+      .catch(() => setGateError('Keine Verbindung zum Server'));
+  }
+
+  function showAccessState(title, text, relogin) {
+    $('#accessGate').hidden = false;
+    $('#accessTitle').textContent = title;
+    $('#accessText').textContent = text;
+    $('#accessRelogin').hidden = !relogin;
+  }
+
+  /**
+   * Cloudflare-Modus: Access hat die E-Mail bereits per Code bestätigt. Druckplatte fragt
+   * keinen zweiten Code ab, sondern registriert das Gerät (bzw. nutzt das vorhandene).
+   */
+  async function accessLogin(accessRequired) {
+    showAccessState('Anmeldung wird geprüft …', 'Deine E-Mail wurde bereits von Cloudflare Access bestätigt. Es ist kein zusätzlicher Code nötig.', false);
+    if (accessRequired || state.accessAttempted) {
+      showAccessState('Anmeldung erforderlich', 'Bitte die Seite neu laden und bei Cloudflare Access anmelden.', true);
+      return;
+    }
+    state.accessAttempted = true;
+    try {
+      await api('POST', '/api/auth/access-session');
+      const me = await api('GET', '/api/me');
+      await startApp(me);
+    } catch (err) {
+      if (err.code === 'access_reauth_required') {
+        showAccessState('Neue Anmeldung nötig', 'Die 30 Tage für dieses Gerät sind abgelaufen oder es ist neu. Bitte melde dich einmal neu bei Cloudflare Access an – danach ist das Gerät wieder 30 Tage vertrauenswürdig.', true);
+      } else {
+        showAccessState('Anmeldung nicht möglich', err.message, err.status === 401);
+      }
+    }
   }
   function hideGate() {
     $('#loginGate').hidden = true;
@@ -255,16 +294,40 @@
     closeAllOverlays();
   }
 
-  function onLoggedOut(accessRequired) {
+  function onLoggedOut(accessRequired, loggedOutViaAccess = false) {
     stopPolling();
     wipePrivateState();
+    if (loggedOutViaAccess) {
+      // Cloudflare-Modus: nicht automatisch neu registrieren – erst nach neuer Access-Anmeldung.
+      state.accessAttempted = true;
+      $('#loginGate').hidden = false;
+      $('#emailForm').hidden = true;
+      $('#codeForm').hidden = true;
+      setGateError('');
+      showAccessState('Abgemeldet', 'Dieses Gerät ist vergessen. Zum erneuten Anmelden bitte neu bei Cloudflare Access anmelden.', true);
+      return;
+    }
     showGate(accessRequired);
+  }
+
+  /** Externe Bild-URLs nur, wenn der Server Bildquellen freigegeben hat – sonst nur Upload. */
+  function applyImageUrlPolicy() {
+    const hosts = state.imageUrlHosts;
+    $('#f-image-url').hidden = hosts.length === 0;
+    $('#f-image-url').placeholder = hosts.length ? `Bild-URL von ${hosts.join(', ')} …` : '';
+    $('#imageUrlHint').hidden = false;
+    $('#imageUrlHint').textContent = hosts.length
+      ? `Bild-URLs nur von: ${hosts.join(', ')}. Sonst Datei wählen, hineinziehen oder mit Strg+V einfügen.`
+      : 'Bild als Datei wählen, hineinziehen oder mit Strg+V einfügen. Externe Bild-Links sind aus Datenschutzgründen nicht erlaubt.';
   }
 
   // ------------------------------------------------------------------ Start & Live-Sync
 
   async function startApp(me) {
     state.me = me;
+    state.accessAttempted = false;
+    state.imageUrlHosts = Array.isArray(me.imageUrlHosts) ? me.imageUrlHosts : [];
+    applyImageUrlPolicy();
     hideGate();
     $('#previewFlag').hidden = me.env !== 'preview';
     $('#profileLabel').textContent = me.user.email;
@@ -1133,7 +1196,7 @@
       $('#f-public').checked = Boolean(m.isPublic);
       state.pendingImage = m.imageUrl || '';
       state.imageDirty = false;
-      if (m.imageUrl && /^https?:/.test(m.imageUrl)) $('#f-image-url').value = m.imageUrl;
+      if (m.imageUrl && /^https:/.test(m.imageUrl) && state.imageUrlHosts.length) $('#f-image-url').value = m.imageUrl;
       updatePreview();
     } else {
       state.currentType = 'model';
@@ -1236,7 +1299,7 @@
         /* weiter mit URL-Versuch */
       }
     }
-    const uri = e.dataTransfer.getData('text/uri-list') || e.dataTransfer.getData('text/plain');
+    const uri = state.imageUrlHosts.length ? e.dataTransfer.getData('text/uri-list') || e.dataTransfer.getData('text/plain') : '';
     if (uri && /^https?:\/\//i.test(uri.trim())) {
       setPendingImage(uri.trim());
       $('#f-image-url').value = uri.trim();
@@ -1414,7 +1477,8 @@
     if (!confirm('Abmelden und dieses Gerät vergessen? Beim nächsten Besuch ist wieder ein E-Mail-Code nötig.')) return;
     const res = await run(() => api('POST', '/api/auth/logout'));
     if (res) {
-      onLoggedOut(false);
+      const viaAccess = state.me && state.me.authMode === 'cloudflare-access';
+      onLoggedOut(false, viaAccess);
       toast('Abgemeldet');
     }
   });

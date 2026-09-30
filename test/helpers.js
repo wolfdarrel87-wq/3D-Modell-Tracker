@@ -5,6 +5,7 @@ const http = require('node:http');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
+const crypto = require('node:crypto');
 
 const { loadConfig } = require('../server/config');
 const { createApp } = require('../server/app');
@@ -64,6 +65,8 @@ async function startServer({ dataDir = tempDir(), clock = fakeClock(), env = {},
     app,
     server,
     baseUrl,
+    // Origin, die ein echter Browser auf der Druckplatte-Seite mitsenden würde
+    origin: config.allowedOrigins[0],
     dataDir,
     clock,
     logs,
@@ -138,6 +141,9 @@ class Browser {
       redirect: 'manual',
       headers: { 'user-agent': this.userAgent, ...headers },
     };
+    // Wie ein echter Browser: ändernde Anfragen tragen den Origin der Seite (fail-closed CSRF-Schutz).
+    if (method !== 'GET' && method !== 'HEAD' && !('origin' in init.headers) && this.server.origin) init.headers.origin = this.server.origin;
+    if (init.headers.origin === null) delete init.headers.origin;
     const cookie = this.cookieHeader();
     if (cookie) init.headers.cookie = cookie;
     if (body !== undefined) {
@@ -247,7 +253,30 @@ function allDevices(server, email) {
   return user ? server.state.devices.filter((d) => d.userId === user.id) : [];
 }
 
+/** Selbst signierte Cloudflare-Access-JWTs + JWKS für Tests (kein Netzwerkzugriff). */
+function accessFixture() {
+  const { privateKey, publicKey } = crypto.generateKeyPairSync('rsa', { modulusLength: 2048 });
+  const jwk = { ...publicKey.export({ format: 'jwk' }), kid: 'test-key', alg: 'RS256', use: 'sig' };
+  const teamDomain = 'druckplatte-test.cloudflareaccess.com';
+  const aud = 'aud-druckplatte-test';
+  const fetchImpl = async (url) => {
+    assert.equal(url, `https://${teamDomain}/cdn-cgi/access/certs`);
+    return { ok: true, status: 200, json: async () => ({ keys: [jwk] }) };
+  };
+  function sign(payload, key = privateKey) {
+    const header = Buffer.from(JSON.stringify({ alg: 'RS256', kid: 'test-key', typ: 'JWT' })).toString('base64url');
+    const body = Buffer.from(JSON.stringify(payload)).toString('base64url');
+    const signature = crypto.sign('RSA-SHA256', Buffer.from(`${header}.${body}`), key).toString('base64url');
+    return `${header}.${body}.${signature}`;
+  }
+  function token(email, { iat = Math.floor(START / 1000), exp = iat + 3600, audience = aud, iss = `https://${teamDomain}`, key } = {}) {
+    return sign({ email, aud: [audience], iss, exp, iat, type: 'app' }, key);
+  }
+  return { teamDomain, aud, fetchImpl, token };
+}
+
 module.exports = {
+  accessFixture,
   ADMIN_EMAIL,
   ADMIN_PASSWORD,
   DAY,

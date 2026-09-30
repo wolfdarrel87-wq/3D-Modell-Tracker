@@ -20,7 +20,9 @@ const EMAILS = {
  *   Dora hat keinen Auftrag in der Warteschlange.
  */
 async function setupScenario() {
-  const server = await startServer();
+  // Anpassung (Review, Punkt 7): externe Bild-URLs sind standardmäßig verboten. Für den Leak-Test mit
+  // einem URL-Bild wird dieser eine Host ausdrücklich freigegeben.
+  const server = await startServer({ env: { IMAGE_HOST_ALLOWLIST: 'cdn.example.test' } });
   const b = {};
   for (const [key, email] of Object.entries(EMAILS)) {
     b[key] = new Browser(server);

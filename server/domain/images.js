@@ -2,6 +2,7 @@
 
 const fs = require('node:fs');
 const path = require('node:path');
+const net = require('node:net');
 const { randomToken } = require('../util/crypto');
 const { HttpError } = require('../util/http');
 
@@ -26,11 +27,74 @@ function isHttpUrl(value) {
   }
 }
 
+function ipv4Parts(ip) {
+  return ip.split('.').map(Number);
+}
+
+/** Loopback, private Netze, Link-Local (inkl. Metadaten-IP 169.254.169.254), CGNAT, Multicast, reserviert. */
+function isPrivateOrLocalIp(ip) {
+  const version = net.isIP(ip);
+  if (version === 4) {
+    const [a, b] = ipv4Parts(ip);
+    return (
+      a === 0 || a === 10 || a === 127 || (a === 169 && b === 254) || (a === 172 && b >= 16 && b <= 31) ||
+      (a === 192 && b === 168) || (a === 100 && b >= 64 && b <= 127) || (a === 192 && b === 0) || (a === 198 && (b === 18 || b === 19)) ||
+      a >= 224
+    );
+  }
+  if (version === 6) {
+    const lower = ip.toLowerCase();
+    if (lower === '::' || lower === '::1') return true;
+    const mapped = /^::ffff:(\d+\.\d+\.\d+\.\d+)$/.exec(lower);
+    if (mapped) return isPrivateOrLocalIp(mapped[1]);
+    if (/^::ffff:[0-9a-f]{1,4}:[0-9a-f]{1,4}$/.test(lower)) return true; // IPv4-mapped in Hex-Form
+    const first = parseInt(lower.split(':')[0] || '0', 16);
+    return (first & 0xfe00) === 0xfc00 || (first & 0xffc0) === 0xfe80 || (first & 0xffc0) === 0xfec0 || (first & 0xff00) === 0xff00;
+  }
+  return false;
+}
+
+/** Hosts, die nie als Bildquelle erlaubt sind: IP-Literale, localhost und interne Namen. */
+function blockedHostReason(hostname) {
+  const host = String(hostname || '').toLowerCase().replace(/^\[|\]$/g, '').replace(/\.$/, '');
+  if (!host) return 'leer';
+  if (net.isIP(host)) return isPrivateOrLocalIp(host) ? 'lokales oder privates Netz' : 'IP-Adresse statt Hostname';
+  if (host === 'localhost' || /\.(localhost|local|internal|lan|home\.arpa|intranet|corp)$/.test(host)) return 'lokales oder privates Netz';
+  if (!host.includes('.')) return 'interner Hostname';
+  return null;
+}
+
+/**
+ * Prüft eine externe Bild-URL. Standard (leere Allowlist): externe URLs sind nicht erlaubt,
+ * Bilder kommen nur als Upload über /api/images. Mit IMAGE_HOST_ALLOWLIST sind ausschließlich
+ * https-URLs auf exakt diesen Hostnamen erlaubt – nie lokale/private Ziele.
+ */
+function checkImageUrl(value, allowlist = []) {
+  let url;
+  try {
+    url = new URL(value);
+  } catch {
+    return { ok: false, message: 'Bild muss eine hochgeladene Datei sein' };
+  }
+  if (url.protocol !== 'https:') return { ok: false, message: 'Externe Bilder nur über https' };
+  if (url.username || url.password) return { ok: false, message: 'Bild-URL darf keine Zugangsdaten enthalten' };
+  const blocked = blockedHostReason(url.hostname);
+  if (blocked) return { ok: false, message: `Bild-URL nicht erlaubt (${blocked})` };
+  if (url.port) return { ok: false, message: 'Bild-URL darf keinen eigenen Port verwenden' };
+  if (!allowlist.length) return { ok: false, message: 'Externe Bild-URLs sind nicht erlaubt – bitte das Bild hochladen' };
+  if (!allowlist.includes(url.hostname.toLowerCase())) return { ok: false, message: 'Diese Bildquelle ist nicht freigegeben – bitte das Bild hochladen' };
+  return { ok: true, url: url.href };
+}
+
+function isAllowedImageUrl(value, allowlist = []) {
+  return typeof value === 'string' && value.length <= MAX_URL_LENGTH && checkImageUrl(value, allowlist).ok;
+}
+
 /**
  * Normalisiert die Bildangabe eines Formulars:
- *  '' / null → kein Bild; data:-URL → Datei (serverseitig gespeichert); http(s)-URL → externe URL.
+ *  '' / null → kein Bild; data:-URL → Datei (serverseitig gespeichert); https-URL → nur mit Allowlist.
  */
-function parseImageInput(value) {
+function parseImageInput(value, { allowlist = [] } = {}) {
   if (value === null || value === '' || value === undefined) return { kind: 'none' };
   if (typeof value !== 'string') throw new HttpError(400, 'invalid_image', 'Ungültiges Bild');
   const match = DATA_URL_PATTERN.exec(value);
@@ -40,8 +104,10 @@ function parseImageInput(value) {
     if (!MAGIC[match[1]](buffer)) throw new HttpError(400, 'invalid_image', 'Bilddatei ist beschädigt');
     return { kind: 'data', mime: match[1], buffer };
   }
-  if (value.length <= MAX_URL_LENGTH && isHttpUrl(value)) return { kind: 'url', url: value };
-  throw new HttpError(400, 'invalid_image', 'Bild muss eine Datei oder eine http(s)-URL sein');
+  if (value.length > MAX_URL_LENGTH) throw new HttpError(400, 'invalid_image', 'Bild-URL ist zu lang');
+  const check = checkImageUrl(value, allowlist);
+  if (!check.ok) throw new HttpError(400, 'invalid_image', check.message);
+  return { kind: 'url', url: check.url };
 }
 
 function imagesDir(dataDir) {
@@ -75,4 +141,4 @@ function deleteImageFile(dataDir, image) {
   }
 }
 
-module.exports = { parseImageInput, saveImageFile, readImageFile, deleteImageFile, isHttpUrl, KEY_PATTERN };
+module.exports = { parseImageInput, saveImageFile, readImageFile, deleteImageFile, isHttpUrl, checkImageUrl, isAllowedImageUrl, isPrivateOrLocalIp, blockedHostReason, KEY_PATTERN };

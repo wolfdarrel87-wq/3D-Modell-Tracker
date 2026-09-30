@@ -44,6 +44,7 @@ async function main() {
     HOST: process.env.HOST || '127.0.0.1',
     PORT: port,
     PUBLIC_BASE_URL: process.env.PUBLIC_BASE_URL || `http://localhost:${port}`,
+    ALLOWED_ORIGINS: process.env.ALLOWED_ORIGINS || `http://127.0.0.1:${port}`,
     MAIL_PRODUCTION_ENABLED: 'false',
     ADMIN_EMAILS: 'admin@druckplatte.test',
     ADMIN_PASSWORD_HASH: await hashPassword(PREVIEW_ADMIN_PASSWORD),

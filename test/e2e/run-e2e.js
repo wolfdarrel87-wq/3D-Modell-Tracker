@@ -22,7 +22,7 @@ const { hashPassword } = require('../../server/util/crypto');
 const { Store } = require('../../server/store');
 const { applyIdeaMigration } = require('../../server/domain/dpRefs');
 const { seedPreview } = require('../../scripts/seed-preview');
-const { Browser: ApiClient, login: apiLogin, elevate, ADMIN_EMAIL, ADMIN_PASSWORD } = require('../helpers');
+const { Browser: ApiClient, login: apiLogin, elevate, accessFixture, ADMIN_EMAIL, ADMIN_PASSWORD } = require('../helpers');
 
 function loadPlaywright() {
   try {
@@ -49,7 +49,7 @@ async function freePort() {
   return port;
 }
 
-async function startDruckplatte(dataDir, port) {
+async function startDruckplatte(dataDir, port, { env = {}, fetchImpl } = {}) {
   const config = loadConfig({
     DRUCKPLATTE_ENV: 'preview',
     DATA_DIR: dataDir,
@@ -57,9 +57,10 @@ async function startDruckplatte(dataDir, port) {
     PUBLIC_BASE_URL: `http://localhost:${port}`,
     ADMIN_EMAILS: ADMIN_EMAIL,
     ADMIN_PASSWORD_HASH: await hashPassword(ADMIN_PASSWORD),
+    ...env,
   });
   const logs = [];
-  const app = createApp({ config, logger: createLogger({ log: (l) => logs.push(l), error: (l) => logs.push(l) }) });
+  const app = createApp({ config, fetchImpl, logger: createLogger({ log: (l) => logs.push(l), error: (l) => logs.push(l) }) });
   const server = http.createServer(app.handler);
   await new Promise((r) => server.listen(port, '127.0.0.1', r));
   return {
@@ -146,6 +147,7 @@ test('Druckplatte im Browser (Chromium)', { timeout: 600000 }, async (t) => {
     get baseUrl() {
       return `http://127.0.0.1:${port}`;
     },
+    origin: `http://localhost:${port}`,
     clock: { now: () => Date.now() },
     outbox: () => dp.outbox(),
     get state() {
@@ -172,6 +174,7 @@ test('Druckplatte im Browser (Chromium)', { timeout: 600000 }, async (t) => {
   let browser = await chromium.launch();
   const pageErrors = [];
   const httpErrors = [];
+  const externalRequests = [];
   // Erwartete HTTP-Fehler: 401 = (noch) nicht angemeldet, 403 = absichtlich falsches Admin-Passwort im Test.
   const expectedHttp = (status, pathname) =>
     (status === 401 && pathname.startsWith('/api/')) || (status === 403 && pathname === '/api/admin/elevate');
@@ -181,9 +184,14 @@ test('Druckplatte im Browser (Chromium)', { timeout: 600000 }, async (t) => {
       // Netzwerkfehler meldet Chromium als „Failed to load resource“ – die werden separat über die Antworten geprüft.
       if (m.type() === 'error' && !/Failed to load resource/.test(m.text())) pageErrors.push(`${label}: ${m.text()}`);
     });
+    // Lokale Assets: die Seite darf keine fremden Hosts ansprechen (früher: Google Fonts)
+    page.on('request', (req) => {
+      const url = new URL(req.url());
+      if (!['localhost', '127.0.0.1'].includes(url.hostname) && url.protocol !== 'data:') externalRequests.push(`${label}: ${req.url()}`);
+    });
     page.on('response', (res) => {
       const url = new URL(res.url());
-      if (!url.host.startsWith('localhost') && !url.host.startsWith('127.0.0.1')) return; // z. B. Google Fonts
+      if (!url.host.startsWith('localhost') && !url.host.startsWith('127.0.0.1')) return;
       if (res.status() >= 400 && !expectedHttp(res.status(), url.pathname)) httpErrors.push(`${label}: ${res.status()} ${url.pathname}`);
     });
     page.on('dialog', (d) => d.accept());
@@ -413,9 +421,10 @@ test('Druckplatte im Browser (Chromium)', { timeout: 600000 }, async (t) => {
       assert.deepEqual(problems, []);
     });
 
-    await t.test('Keine JavaScript-Fehler und keine unerwarteten HTTP-Fehler im Browser', () => {
+    await t.test('Keine JavaScript-Fehler, keine unerwarteten HTTP-Fehler, keine externen Anfragen', () => {
       assert.deepEqual(pageErrors, []);
       assert.deepEqual(httpErrors, []);
+      assert.deepEqual(externalRequests, [], 'Schriften/Assets kommen lokal');
     });
 
     await t.test('Keine Tokens in Serverlogs', async () => {
@@ -426,6 +435,110 @@ test('Druckplatte im Browser (Chromium)', { timeout: 600000 }, async (t) => {
   } finally {
     await browser.close();
     await new Promise((r) => mailServer.close(r));
+    await dp.stop();
+  }
+});
+
+/**
+ * Produktionsmodell: Cloudflare Access sitzt vor Druckplatte und hat die E-Mail bereits per Code
+ * bestätigt. Die Access-Edge wird hier nachgestellt, indem Chromium den signierten
+ * Cf-Access-Jwt-Assertion-Header mitsendet (selbst signiert, kein Netzwerkzugriff).
+ */
+test('Cloudflare-Access-Modus im Browser (Chromium): kein zweiter Code', { timeout: 300000 }, async (t) => {
+  const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'druckplatte-e2e-cf-preview-'));
+  seedPreview({ dataDir });
+  const access = accessFixture();
+  const port = await freePort();
+  const dp = await startDruckplatte(dataDir, port, {
+    env: { CF_ACCESS_TEAM_DOMAIN: access.teamDomain, CF_ACCESS_AUD: access.aud },
+    fetchImpl: access.fetchImpl,
+  });
+  const nowS = () => Math.floor(Date.now() / 1000);
+  const jwtHeaders = (email, opts) => ({ 'cf-access-jwt-assertion': access.token(email, opts) });
+  const browser = await chromium.launch();
+  const pageErrors = [];
+  const httpErrors = [];
+  const newPage = async (context, label) => {
+    const page = await context.newPage();
+    page.on('pageerror', (e) => pageErrors.push(`${label}: ${e.message}`));
+    page.on('console', (m) => {
+      if (m.type() === 'error' && !/Failed to load resource/.test(m.text())) pageErrors.push(`${label}: ${m.text()}`);
+    });
+    page.on('response', (res) => {
+      const url = new URL(res.url());
+      // 401 unter /api/ = (noch) keine Druckplatte-Sitzung bzw. neue Access-Anmeldung nötig – erwartet
+      if (res.status() >= 400 && !(res.status() === 401 && url.pathname.startsWith('/api/'))) httpErrors.push(`${label}: ${res.status()} ${url.pathname}`);
+    });
+    page.on('dialog', (d) => d.accept());
+    return page;
+  };
+  const newContext = (headers, opts = {}) =>
+    browser.newContext({ viewport: { width: 1280, height: 900 }, extraHTTPHeaders: headers, ...opts });
+
+  try {
+    let persisted;
+    let annaPage;
+    await t.test('CF-E1: frische Access-Anmeldung → App startet ohne Code-Formular, genau ein Gerät, keine Mail', async () => {
+      const context = await newContext(jwtHeaders(ANNA, { iat: nowS() }));
+      annaPage = await newPage(context, 'anna-cf');
+      await annaPage.goto(`${dp.baseUrl}/`);
+      await waitForApp(annaPage);
+      assert.equal(await annaPage.isVisible('#emailForm'), false);
+      assert.equal(await annaPage.isVisible('#codeForm'), false);
+      assert.equal(dp.outbox().length, 0, 'Druckplatte hat keinen Code verschickt');
+      assert.equal(activeDevices(dp, ANNA).length, 1);
+      const device = (await context.cookies()).find((c) => c.name === '__Host-dp_device');
+      assert.ok(device && device.httpOnly && device.secure, 'sicherer Geräte-Cookie');
+      persisted = await persistentState(context);
+      await shot(annaPage, 'cf-app-1280');
+    });
+
+    await t.test('CF-E2: Browser-Neustart mit ALTER Access-Anmeldung → vorhandenes Gerät, kein neues', async () => {
+      const context = await newContext(jwtHeaders(ANNA, { iat: nowS() - 2 * 3600, exp: nowS() + 3600 }), { storageState: persisted });
+      const page = await newPage(context, 'anna-cf-restart');
+      await page.goto(`${dp.baseUrl}/`);
+      await waitForApp(page);
+      assert.equal(activeDevices(dp, ANNA).length, 1);
+      assert.equal(dp.state.devices.filter((d) => d.userId === dp.state.users.find((u) => u.email === ANNA).id).length, 1);
+      await context.close();
+    });
+
+    await t.test('CF-E3: neues Gerät ohne frische Access-Anmeldung → Hinweis „Neu anmelden“, kein Gerät', async () => {
+      const context = await newContext(jwtHeaders(DORA, { iat: nowS() - 2 * 3600, exp: nowS() + 3600 }), { viewport: { width: 360, height: 780 } });
+      const page = await newPage(context, 'dora-cf-stale');
+      await page.goto(`${dp.baseUrl}/`);
+      await page.waitForSelector('#accessGate:not([hidden])');
+      await page.waitForFunction(() => document.querySelector('#accessTitle').textContent.includes('Neue Anmeldung'));
+      assert.equal(await page.isVisible('#accessRelogin'), true);
+      assert.equal(await page.getAttribute('#accessRelogin', 'href'), '/cdn-cgi/access/logout');
+      assert.equal(await page.isVisible('#emailForm'), false, 'kein Druckplatte-Code-Formular');
+      assert.deepEqual(await layoutProblems(page), []);
+      await shot(page, 'cf-gate-reauth-360');
+      assert.equal(dp.state.users.some((u) => u.email === DORA && dp.state.devices.some((d) => d.userId === u.id && !d.revokedAt)), false);
+      await context.close();
+    });
+
+    await t.test('CF-E4: Abmelden → Gerät vergessen, KEINE stille Neuregistrierung, Hinweis auf Access-Anmeldung', async () => {
+      await annaPage.click('#profileBtn');
+      await annaPage.waitForSelector('#profileOverlay.open');
+      await annaPage.click('#logoutBtn');
+      await annaPage.waitForSelector('#accessGate:not([hidden])');
+      await annaPage.waitForFunction(() => document.querySelector('#accessTitle').textContent === 'Abgemeldet');
+      assert.equal(await annaPage.isVisible('#accessRelogin'), true);
+      await annaPage.reload(); // auch ein Neuladen mit demselben Access-Token registriert nichts
+      await annaPage.waitForSelector('#accessGate:not([hidden])');
+      await annaPage.waitForFunction(() => document.querySelector('#accessTitle').textContent.includes('Neue Anmeldung'));
+      assert.equal(activeDevices(dp, ANNA).length, 0, 'kein neues Gerät nach Abmelden');
+      assert.ok(!(await annaPage.content()).includes('Dein Platz'), 'keine Daten mehr im DOM');
+      await shot(annaPage, 'cf-logged-out-1280');
+    });
+
+    await t.test('CF: keine JavaScript-Fehler und keine unerwarteten HTTP-Fehler', () => {
+      assert.deepEqual(pageErrors, []);
+      assert.deepEqual(httpErrors, []);
+    });
+  } finally {
+    await browser.close();
     await dp.stop();
   }
 });

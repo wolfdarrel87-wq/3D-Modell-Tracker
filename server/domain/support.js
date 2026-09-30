@@ -1,5 +1,9 @@
 'use strict';
 
+// PROTOTYP – NICHT in die echte Druckplatte portieren. Die Produktion hat ein eigenes System mit
+// REP-/SUP-Referenzen, direkten Admin-Gesprächen, Archiv, vollständigem Verlauf und „Wieder öffnen“.
+// Dieses Modul löscht Einträge beim Erledigen und ist nur Platzhalter für die Preview.
+
 const { randomId } = require('../util/crypto');
 const { HttpError } = require('../util/http');
 

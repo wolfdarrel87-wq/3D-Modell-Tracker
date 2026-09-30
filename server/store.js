@@ -2,6 +2,7 @@
 
 const fs = require('node:fs');
 const path = require('node:path');
+const crypto = require('node:crypto');
 
 const SCHEMA_VERSION = 1;
 
@@ -60,11 +61,21 @@ function processAlive(pid) {
  * dass ein zweiter Prozess dasselbe Datenverzeichnis beschreibt.
  */
 class Store {
-  constructor({ dataDir, fileName = 'druckplatte.json', lock = true }) {
+  /**
+   * @param lockOwnerId   Prozess-ID im Lock (Standard: eigene PID; in Tests überschreibbar)
+   * @param isOwnerAlive  Prüft, ob der Besitzer eines Locks noch lebt (Standard: process.kill(pid, 0))
+   * @param onStaleLock   Test-Hook: wird aufgerufen, nachdem ein verwaister Lock erkannt wurde
+   */
+  constructor({ dataDir, fileName = 'druckplatte.json', lock = true, lockOwnerId = process.pid, isOwnerAlive = processAlive, onStaleLock = null }) {
     this.dataDir = dataDir;
     this.file = path.join(dataDir, fileName);
     this.lockFile = path.join(dataDir, 'store.lock');
+    this.recoverFile = path.join(dataDir, 'store.lock.recover');
     this.useLock = lock;
+    this.isOwnerAlive = isOwnerAlive;
+    this.onStaleLock = onStaleLock;
+    // Eindeutiger Inhalt je Store-Instanz: PID + Zufall – so ist jeder Lock von jedem anderen unterscheidbar.
+    this._lockToken = `${lockOwnerId}:${crypto.randomBytes(8).toString('hex')}`;
     this._state = null;
     this._inTransaction = false;
     this._lockHeld = false;
@@ -80,10 +91,13 @@ class Store {
 
   close() {
     if (this._lockHeld) {
-      try {
-        fs.unlinkSync(this.lockFile);
-      } catch {
-        /* bereits entfernt */
+      // Nur den eigenen Lock entfernen – niemals einen fremden.
+      if (this._readLock(this.lockFile) === this._lockToken) {
+        try {
+          fs.unlinkSync(this.lockFile);
+        } catch {
+          /* bereits entfernt */
+        }
       }
       this._lockHeld = false;
     }
@@ -124,21 +138,81 @@ class Store {
     fs.renameSync(tmp, this.file);
   }
 
-  _acquireLock() {
+  _tryCreate(file) {
     try {
-      fs.writeFileSync(this.lockFile, String(process.pid), { flag: 'wx', mode: 0o600 });
+      fs.writeFileSync(file, this._lockToken, { flag: 'wx', mode: 0o600 });
+      return true;
+    } catch (err) {
+      if (err.code === 'EEXIST') return false;
+      throw err;
+    }
+  }
+
+  _readLock(file) {
+    try {
+      return fs.readFileSync(file, 'utf8').trim();
+    } catch (err) {
+      if (err.code === 'ENOENT') return null;
+      throw err;
+    }
+  }
+
+  _ownerOf(content) {
+    const pid = Number(String(content).split(':')[0]);
+    return Number.isInteger(pid) && pid > 0 ? pid : null;
+  }
+
+  /**
+   * Lock-Erwerb ausschließlich über atomares Anlegen (flag 'wx'). Ein verwaister Lock wird nur
+   * unter einem zweiten atomaren Wiederherstellungs-Lock (store.lock.recover) entfernt, und nur,
+   * wenn er dort noch unverändert derselbe verwaiste Lock ist. Danach wird wieder atomar mit 'wx'
+   * angelegt. Ergebnis: Auch wenn mehrere Prozesse gleichzeitig denselben verwaisten Lock sehen,
+   * bekommt höchstens einer den Lock – die anderen brechen mit klarer Fehlermeldung ab.
+   */
+  _acquireLock() {
+    if (this._tryCreate(this.lockFile)) {
       this._lockHeld = true;
       return;
-    } catch (err) {
-      if (err.code !== 'EEXIST') throw err;
     }
-    const pid = Number(fs.readFileSync(this.lockFile, 'utf8').trim());
-    if (Number.isInteger(pid) && pid > 0 && processAlive(pid)) {
-      throw new Error(`Datenverzeichnis ${this.dataDir} wird bereits von Prozess ${pid} verwendet (store.lock).`);
+    const seen = this._readLock(this.lockFile);
+    if (seen === null) {
+      // Lock verschwand gerade – genau ein weiterer atomarer Versuch, sonst abbrechen.
+      if (this._tryCreate(this.lockFile)) {
+        this._lockHeld = true;
+        return;
+      }
+      throw new Error(`Datenverzeichnis ${this.dataDir} wurde gerade von einem anderen Prozess gesperrt (store.lock).`);
     }
-    // Verwaiste Lock-Datei eines beendeten Prozesses übernehmen.
-    fs.writeFileSync(this.lockFile, String(process.pid), { mode: 0o600 });
-    this._lockHeld = true;
+    const owner = this._ownerOf(seen);
+    if (owner !== null && this.isOwnerAlive(owner)) {
+      throw new Error(`Datenverzeichnis ${this.dataDir} wird bereits von Prozess ${owner} verwendet (store.lock).`);
+    }
+    if (this.onStaleLock) this.onStaleLock();
+    this._recoverStaleLock(seen);
+  }
+
+  _recoverStaleLock(seen) {
+    if (!this._tryCreate(this.recoverFile)) {
+      throw new Error(
+        `Ein anderer Prozess übernimmt gerade den verwaisten Lock in ${this.dataDir} (store.lock.recover). ` +
+          'Bitte erneut starten. Bleibt die Datei nach einem Absturz liegen, manuell prüfen und entfernen.',
+      );
+    }
+    try {
+      const current = this._readLock(this.lockFile);
+      if (current !== null && current !== seen) {
+        throw new Error(`Datenverzeichnis ${this.dataDir} wurde inzwischen von einem anderen Prozess gesperrt (store.lock).`);
+      }
+      // Solange der verwaiste Lock existiert, kann niemand sonst per 'wx' einen Lock anlegen,
+      // und die Wiederherstellung gehört exklusiv uns – er ist also noch genau der gesehene Lock.
+      if (current !== null) fs.unlinkSync(this.lockFile);
+      if (!this._tryCreate(this.lockFile)) {
+        throw new Error(`Datenverzeichnis ${this.dataDir} wurde gerade von einem anderen Prozess gesperrt (store.lock).`);
+      }
+      this._lockHeld = true;
+    } finally {
+      if (this._readLock(this.recoverFile) === this._lockToken) fs.unlinkSync(this.recoverFile);
+    }
   }
 }
 
