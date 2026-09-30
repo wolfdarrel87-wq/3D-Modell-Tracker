@@ -38,6 +38,8 @@
     highlight: null,
     imageUrlHosts: [],
     accessAttempted: false,
+    visOrderId: null,
+    visChoice: false,
   };
 
   const $ = (sel) => document.querySelector(sel);
@@ -49,6 +51,9 @@
   const textOverlay = $('#textOverlay');
   const profileOverlay = $('#profileOverlay');
   const adminOverlay = $('#adminOverlay');
+  const statusOverlay = $('#statusOverlay');
+  const usersOverlay = $('#usersOverlay');
+  const visibilityOverlay = $('#visibilityOverlay');
   const toastEl = $('#toast');
 
   // ------------------------------------------------------------------ Hilfen
@@ -287,9 +292,8 @@
     }
     $('#queueTotal').textContent = '';
     $('#profileEmail').textContent = '';
-    $('#profileLabel').textContent = 'Profil';
     $('#s-model').innerHTML = '<option value="">Kein bestimmtes Modell</option>';
-    for (const id of ['liveSection', 'publicSection', 'usersSection']) $(`#${id}`).hidden = true;
+    $('#publicSection').hidden = true;
     for (const id of ['#supportSection', '#ideaSection', '#emptyState', '#gridHeading']) $(id).style.display = 'none';
     closeAllOverlays();
   }
@@ -330,7 +334,6 @@
     applyImageUrlPolicy();
     hideGate();
     $('#previewFlag').hidden = me.env !== 'preview';
-    $('#profileLabel').textContent = me.user.email;
     applyRoleUI();
     await refreshAll();
     startPolling();
@@ -459,18 +462,16 @@
 
   function applyRoleUI() {
     if (!state.me) return;
-    const adminUser = state.me.user.role === 'admin';
-    $('#roleSwitch').hidden = !adminUser;
     $('#adminBtn').classList.toggle('active', isAdmin());
     $('#submitterBtn').classList.toggle('active', !isAdmin());
     $('#statusField').style.display = isAdmin() ? 'block' : 'none';
     const banner = $('#modeBanner');
     if (isAdmin()) {
       banner.className = 'mode-banner admin';
-      banner.textContent = '🔒 Admin-Modus – du siehst alle Aufträge, Ideen, Support-Nachrichten und verwaltest die Warteschlange.';
+      banner.textContent = '🔒 Admin-Modus – du siehst Ideen & Support-Nachrichten und verwaltest alle Modelle.';
     } else {
       banner.className = 'mode-banner';
-      banner.textContent = '📤 Auftraggeber-Modus – du siehst deine eigenen Aufträge. Fremde private Drucke bleiben anonym.';
+      banner.textContent = '📤 Auftraggeber-Modus – du reichst Modelle/Ideen ein, der Admin setzt den Status.';
     }
     $('#emptyText').textContent = isAdmin()
       ? 'Noch keine Modelle auf der Platte.'
@@ -559,17 +560,14 @@
     return `<a class="link-btn" href="${escapeHtml(href)}" target="_blank" rel="noopener noreferrer">↗ ${escapeHtml(href.replace(/^https?:\/\//, ''))}</a>`;
   }
 
-  function tagsHtml(item, { idea = false, isPublic = false } = {}) {
+  function tagsHtml(item, { idea = false, isPublic = false, dpRef = null, extra = '' } = {}) {
     return `
+      ${dpRef ? `<span class="tag dp-tag" title="Auftragsnummer">${escapeHtml(dpRef)}</span>` : ''}
       ${idea ? '<span class="tag idea-flag">💡 Idee</span>' : ''}
       ${isPublic ? '<span class="tag public-flag">🌍 Öffentlich</span>' : ''}
       <span class="tag"><span class="swatch-dot" style="background:${colorHex(item.color)}"></span>${escapeHtml(item.color || '—')}</span>
-      <span class="tag">${escapeHtml(item.filament || '—')}</span>`;
-  }
-
-  function dpBlock(dpRef) {
-    if (!dpRef) return '';
-    return `<div class="dp-block"><span class="dp-label">Auftragsnummer</span><span class="dp-ref">${escapeHtml(dpRef)}</span></div>`;
+      <span class="tag">${escapeHtml(item.filament || '—')}</span>
+      ${extra}`;
   }
 
   function progressBar(percent) {
@@ -579,7 +577,6 @@
 
   function render() {
     if (!state.me || !state.live) return;
-    $('#liveSection').hidden = false;
     renderChips();
     renderSupportInbox();
     renderIdeaInbox();
@@ -618,6 +615,8 @@
     if (isAdmin() && state.support.length > 0) {
       html += `<button type="button" class="chip" id="supportChip">🎧 Support <span class="n">${state.support.length}</span></button>`;
     }
+    html += statusChipHtml();
+    if (isAdmin()) html += `<button type="button" class="chip" id="usersChip">👥 Benutzer <span class="n">${state.users.length}</span></button>`;
     $('#statChips').innerHTML = html;
     $('#statChips').querySelectorAll('.chip[data-filter]').forEach((btn) => {
       btn.addEventListener('click', () => {
@@ -629,6 +628,9 @@
     if (ideaChip) ideaChip.addEventListener('click', () => $('#ideaSection').scrollIntoView({ behavior: 'smooth', block: 'start' }));
     const supportChip = $('#supportChip');
     if (supportChip) supportChip.addEventListener('click', () => $('#supportSection').scrollIntoView({ behavior: 'smooth', block: 'start' }));
+    $('#statusChip').addEventListener('click', openStatus);
+    const usersChip = $('#usersChip');
+    if (usersChip) usersChip.addEventListener('click', openUsers);
 
     const badge = $('#supportBadge');
     if (isAdmin() && state.support.length > 0) {
@@ -637,6 +639,22 @@
     } else {
       badge.style.display = 'none';
     }
+  }
+
+  /** Chip „Druckstatus“: zeigt die eigene Position bzw. die Länge der Warteschlange, öffnet das Pop-up. */
+  function statusChipHtml() {
+    const q = state.live ? state.live.queue : null;
+    const cp = state.live ? state.live.currentPrint : null;
+    let label = '🖨️ Druckstatus';
+    let n = q && q.total ? String(q.total) : '';
+    if (!isAdmin() && q && q.mine) {
+      label = '🖨️ Dein Platz';
+      n = String(q.mine.position);
+    } else if (cp && cp.kind === 'own') {
+      label = '🖨️ Dein Druck läuft';
+      n = '';
+    }
+    return `<button type="button" class="chip" id="statusChip" title="Aktueller Druck &amp; Warteschlange">${label}${n ? ` <span class="n">${escapeHtml(n)}</span>` : ''}</button>`;
   }
 
   function renderIdeaInbox() {
@@ -648,9 +666,6 @@
       return;
     }
     section.style.display = 'block';
-    section.querySelector('.sub').textContent = isAdmin()
-      ? 'Dinge, die es auf MakerWorld nicht gibt – zur Prüfung durch dich als Admin.'
-      : 'Deine eingereichten Ideen – der Admin prüft sie und plant sie als Auftrag ein.';
     $('#ideaList').innerHTML = pending
       .map((m) => {
         const src = safeUrl(m.imageUrl);
@@ -667,11 +682,10 @@
         <div class="idea-card" data-dp="${escapeHtml(m.dpRef || '')}">
           ${thumb}
           <div class="idea-body">
-            ${m.dpRef ? `<div class="dp-inline">${escapeHtml(m.dpRef)}</div>` : ''}
             <div class="idea-title">${escapeHtml(m.name)}</div>
-            ${isAdmin() && m.ownerEmail ? `<div class="owner-line">von ${escapeHtml(m.ownerEmail)}</div>` : ''}
+            ${isAdmin() && m.ownerEmail ? `<div class="idea-note">👤 ${escapeHtml(m.ownerEmail)}</div>` : ''}
             ${m.note ? `<div class="idea-note">${escapeHtml(m.note)}</div>` : ''}
-            <div class="idea-meta">${tagsHtml(m, { idea: true, isPublic: m.isPublic })}</div>
+            <div class="idea-meta">${tagsHtml(m, { dpRef: m.dpRef, isPublic: m.isPublic })}</div>
           </div>
           ${actions}
         </div>`;
@@ -960,16 +974,16 @@
     emptyState.style.display = tasks.length === 0 ? 'block' : 'none';
     grid.style.display = tasks.length === 0 ? 'none' : 'grid';
     gridHeading.style.display = tasks.length === 0 ? 'none' : 'block';
-    gridHeading.textContent = isAdmin() ? '📋 Alle Druckaufträge' : '📋 Meine Druckaufträge';
-    $('#emptyState h2').textContent = isAdmin() ? 'Noch keine Modelle auf der Platte' : 'Noch keine eigenen Aufträge';
+    gridHeading.textContent = '📋 Druckaufträge';
+    $('#emptyState h2').textContent = 'Noch keine Modelle auf der Platte';
 
     grid.innerHTML = list
       .map((m) => {
         const st = STATUS[m.status] || STATUS.progress;
-        let printState = '';
-        if (m.id === currentId) printState = '<div class="card-state">🖨️ Wird gerade gedruckt</div>';
-        else if (positions.has(m.id)) printState = `<div class="card-state">📋 Warteschlange · Platz ${positions.get(m.id)}</div>`;
-        let actions = '';
+        let printTag = '';
+        if (m.id === currentId) printTag = '<span class="tag">🖨️ im Druck</span>';
+        else if (positions.has(m.id)) printTag = `<span class="tag">📋 Platz ${positions.get(m.id)}</span>`;
+        let actions;
         if (isAdmin()) {
           const canQueue = m.id !== currentId && !positions.has(m.id);
           actions = `<div class="icon-actions">
@@ -979,7 +993,10 @@
              <button class="icon-btn del" data-delete="${escapeHtml(m.id)}" title="Löschen" aria-label="Löschen">🗑</button>
            </div>`;
         } else {
-          actions = `<button type="button" class="vis-btn ${m.isPublic ? 'on' : ''}" data-visibility="${escapeHtml(m.id)}" title="Sichtbarkeit für andere ändern">${m.isPublic ? '🌍 Öffentlich' : '🔒 Privat'}</button>`;
+          const label = m.isPublic ? 'Öffentlich – Sichtbarkeit ändern' : 'Privat – Sichtbarkeit ändern';
+          actions = `<div class="icon-actions">
+             <button class="icon-btn" data-visibility="${escapeHtml(m.id)}" title="${label}" aria-label="${label}">${m.isPublic ? '🌍' : '🔒'}</button>
+           </div>`;
         }
         return `
       <div class="card" data-dp="${escapeHtml(m.dpRef || '')}">
@@ -990,12 +1007,10 @@
           <div class="status-tag ${st.cls}"><span class="led"></span>${st.label}</div>
         </div>
         <div class="card-body">
-          ${dpBlock(m.dpRef)}
           <div class="card-title">${escapeHtml(m.name)}</div>
-          ${isAdmin() ? `<div class="owner-line">${escapeHtml(m.ownerEmail || 'ohne Besitzer')}</div>` : ''}
-          <div class="tag-row">${tagsHtml(m, { idea: m.type === 'idea', isPublic: m.isPublic })}</div>
+          <div class="tag-row">${tagsHtml(m, { dpRef: m.dpRef, idea: m.type === 'idea', isPublic: m.isPublic, extra: printTag })}</div>
+          ${isAdmin() ? `<div class="card-note">👤 ${escapeHtml(m.ownerEmail || 'ohne Besitzer')}</div>` : ''}
           ${m.note ? `<div class="card-note">${escapeHtml(m.note)}</div>` : ''}
-          ${printState}
           <div class="card-footer">
             ${linkHtml(m.link)}
             ${actions}
@@ -1012,15 +1027,7 @@
       bind('data-enqueue', (id) => queueAction(() => api('POST', '/api/admin/queue', { orderId: id }), 'In Warteschlange eingereiht'));
       bind('data-current', (id) => queueAction(() => api('POST', '/api/admin/printer/current', { orderId: id }), 'Als aktueller Druck markiert'));
     } else {
-      bind('data-visibility', (id) => {
-        const order = orders().find((o) => o.id === id);
-        if (!order) return;
-        const next = !order.isPublic;
-        run(async () => {
-          await api('PATCH', `/api/orders/${encodeURIComponent(id)}`, { isPublic: next });
-          await refreshLive();
-        }, next ? 'Jetzt öffentlich sichtbar (ohne Auftragsnummer)' : 'Wieder privat');
-      });
+      bind('data-visibility', (id) => openVisibility(id));
     }
   }
 
@@ -1051,13 +1058,15 @@
   }
 
   function renderUsers() {
-    const section = $('#usersSection');
-    if (!isAdmin() || state.users.length === 0) {
-      section.hidden = true;
+    if (!isAdmin()) {
       $('#userList').innerHTML = '';
+      usersOverlay.classList.remove('open');
       return;
     }
-    section.hidden = false;
+    if (!state.users.length) {
+      $('#userList').innerHTML = '<p class="muted">Noch keine Benutzer.</p>';
+      return;
+    }
     const selfEmail = state.me.user.email;
     $('#userList').innerHTML = state.users
       .map((u) => {
@@ -1088,6 +1097,7 @@
         if (!state.me) return;
         await loadUsers();
         renderUsers();
+        renderChips();
       }, message);
     bind('data-block', (id) => {
       if (confirm(`${find(id).email} sperren? Alle Geräte werden sofort abgemeldet.`)) userAction(() => api('POST', `/api/admin/users/${encodeURIComponent(id)}/block`), 'Benutzer gesperrt');
@@ -1419,6 +1429,87 @@
     if (ok) closeSupportModal();
   });
 
+  // ------------------------------------------------------------------ Pop-up: Druckstatus
+
+  function openStatus() {
+    if (!state.me || !state.live) return;
+    renderCurrentPrint();
+    renderQueue();
+    statusOverlay.classList.add('open');
+  }
+  function closeStatus() {
+    statusOverlay.classList.remove('open');
+  }
+  $('#closeStatus').addEventListener('click', closeStatus);
+  $('#statusCloseBtn').addEventListener('click', closeStatus);
+  statusOverlay.addEventListener('click', (e) => {
+    if (e.target === statusOverlay) closeStatus();
+  });
+
+  // ------------------------------------------------------------------ Pop-up: Benutzer & Geräte (Admin)
+
+  async function openUsers() {
+    if (!isAdmin()) return;
+    usersOverlay.classList.add('open');
+    renderUsers();
+    await run(async () => {
+      await loadUsers();
+      renderUsers();
+      renderChips();
+    });
+  }
+  function closeUsers() {
+    usersOverlay.classList.remove('open');
+  }
+  $('#closeUsers').addEventListener('click', closeUsers);
+  $('#usersCloseBtn').addEventListener('click', closeUsers);
+  usersOverlay.addEventListener('click', (e) => {
+    if (e.target === usersOverlay) closeUsers();
+  });
+
+  // ------------------------------------------------------------------ Pop-up: Sichtbarkeit eines eigenen Auftrags
+
+  function setVisChoice(isPublic) {
+    state.visChoice = isPublic;
+    $('#visSwitch').querySelectorAll('.seg-btn').forEach((b) => b.classList.toggle('active', (b.dataset.vis === 'public') === isPublic));
+    $('#visHint').textContent = isPublic
+      ? 'Öffentlich: Alle angemeldeten Nutzer sehen Bild, Name, Material, Farbe und MakerWorld-Link – nie deine Auftragsnummer, Notiz oder E-Mail.'
+      : 'Privat: Andere sehen nur, dass ein Platz belegt ist („Privater Druck“) – keine Details.';
+  }
+  function openVisibility(id) {
+    const order = orders().find((o) => o.id === id);
+    if (!order) return;
+    state.visOrderId = id;
+    $('#visModelName').textContent = `Wer darf „${order.name}“ sehen?`;
+    setVisChoice(Boolean(order.isPublic));
+    visibilityOverlay.classList.add('open');
+  }
+  function closeVisibility() {
+    visibilityOverlay.classList.remove('open');
+    state.visOrderId = null;
+  }
+  $('#visSwitch').addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-vis]');
+    if (btn) setVisChoice(btn.dataset.vis === 'public');
+  });
+  $('#visSave').addEventListener('click', () => {
+    const id = state.visOrderId;
+    const order = orders().find((o) => o.id === id);
+    if (!order) return closeVisibility();
+    const next = state.visChoice;
+    if (Boolean(order.isPublic) === next) return closeVisibility();
+    run(async () => {
+      await api('PATCH', `/api/orders/${encodeURIComponent(id)}`, { isPublic: next });
+      closeVisibility();
+      await refreshLive();
+    }, next ? 'Jetzt öffentlich sichtbar (ohne Auftragsnummer)' : 'Wieder privat');
+  });
+  $('#closeVisibility').addEventListener('click', closeVisibility);
+  $('#visCancel').addEventListener('click', closeVisibility);
+  visibilityOverlay.addEventListener('click', (e) => {
+    if (e.target === visibilityOverlay) closeVisibility();
+  });
+
   // ------------------------------------------------------------------ Profil & Geräte
 
   async function openProfile() {
@@ -1585,7 +1676,7 @@
   });
 
   function closeAllOverlays() {
-    for (const el of [overlay, supportOverlay, textOverlay, profileOverlay, adminOverlay]) el.classList.remove('open');
+    for (const el of [overlay, supportOverlay, textOverlay, profileOverlay, adminOverlay, statusOverlay, usersOverlay, visibilityOverlay]) el.classList.remove('open');
     state.editingId = null;
   }
 
@@ -1596,6 +1687,9 @@
     if (textOverlay.classList.contains('open')) closeTextModal();
     if (profileOverlay.classList.contains('open')) closeProfile();
     if (adminOverlay.classList.contains('open')) closeAdmin();
+    if (statusOverlay.classList.contains('open')) closeStatus();
+    if (usersOverlay.classList.contains('open')) closeUsers();
+    if (visibilityOverlay.classList.contains('open')) closeVisibility();
   });
 
   // ------------------------------------------------------------------ Start

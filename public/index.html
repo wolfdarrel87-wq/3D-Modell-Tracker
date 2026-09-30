@@ -557,19 +557,15 @@
     *{ transition:none !important; }
   }
 
-  /* ---------- Ergänzungen: Anmeldung, Live-Bereiche, DP-Nummern, Geräte ---------- */
+  /* ---------- Ergänzungen (nur neue Funktionen, im bestehenden Stil) ----------
+     Die Hauptseite nutzt ausschließlich die Original-Styles oben. Neue Funktionen
+     (Anmeldung, Druckstatus, Benutzer, Sichtbarkeit, Profil) laufen in Pop-ups (.overlay/.modal). */
   [hidden]{ display:none !important; }
   .field input[type=email], .field input[type=password], .field input[type=number]{
     width:100%; padding:10px 12px; border-radius:9px;
     background:var(--surface-2); border:1px solid var(--border-soft); color:var(--text);
     font-family:'Inter',sans-serif; font-size:13.5px; outline:none; transition:border-color .12s;
   }
-  .check-field label.check{
-    display:flex; align-items:center; gap:9px; cursor:pointer;
-    font-family:'Inter',sans-serif; font-size:13.5px; text-transform:none; letter-spacing:0; color:var(--text);
-  }
-  .check-field input[type=checkbox]{ width:17px; height:17px; accent-color:var(--accent); flex-shrink:0; }
-
   .preview-flag{
     font-family:'JetBrains Mono',monospace; font-size:10px; font-weight:600; letter-spacing:0.06em;
     padding:3px 7px; border-radius:6px; color:var(--progress);
@@ -577,73 +573,59 @@
   }
   .brand-text h1{ display:flex; align-items:center; gap:8px; }
 
-  .gate{
-    position:fixed; inset:0; z-index:90; display:flex; align-items:center; justify-content:center;
-    padding:20px; overflow-y:auto;
-    background:
-      radial-gradient(circle at 1px 1px, rgba(255,255,255,0.055) 1px, transparent 0) 0 0/24px 24px,
-      var(--bg);
-  }
-  .gate-card{
-    width:100%; max-width:410px; background:var(--surface); border:1px solid var(--border);
-    border-radius:16px; padding:26px 22px; margin:auto;
-  }
-  .gate-brand{ display:flex; align-items:center; gap:12px; margin-bottom:20px; }
-  .gate-card h2{ font-family:'Space Grotesk',sans-serif; font-size:18px; margin:0 0 6px; }
-  .gate-card .btn{ width:100%; justify-content:center; margin-top:4px; }
-  .gate-card .btn + .btn{ margin-top:8px; }
+  /* Karten: DP-Nummer, Öffentlich, Warteschlange als normale Tags */
+  .tag.dp-tag{ color:var(--accent); border-color:rgba(124,156,255,0.35); letter-spacing:0.02em; }
+  .tag.public-flag{ color:var(--ready); border-color:rgba(69,214,196,0.35); }
+  .card.highlight{ border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-soft); }
+
+  /* Pop-up: Anmeldung (ersetzt keine Seite, liegt über der normalen Oberfläche) */
+  .login-overlay{ z-index:60; }
+  .login-overlay .modal .btn{ width:100%; justify-content:center; margin-top:4px; }
+  .login-overlay .modal .btn + .btn{ margin-top:8px; }
   .code-input{ font-family:'JetBrains Mono',monospace !important; font-size:22px !important; letter-spacing:0.35em; text-align:center; }
   .gate-error{ color:var(--fail); font-size:12.5px; min-height:18px; margin-top:10px; line-height:1.4; }
   .gate-note{ font-size:12px; color:var(--text-muted); margin:12px 0 0; line-height:1.55; }
   .gate-note a{ color:var(--accent); }
 
-  .live-grid{ display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:20px; margin-bottom:30px; align-items:start; }
-  @media (max-width:900px){ .live-grid{ grid-template-columns:minmax(0,1fr); } }
-  .panel{ background:var(--surface); border:1px solid var(--border-soft); border-radius:var(--radius); padding:16px; min-width:0; }
-  .panel h3{
-    font-family:'Space Grotesk',sans-serif; font-size:15px; margin:0 0 12px;
+  /* Pop-up: Druckstatus (aktueller Druck + Warteschlange) */
+  .modal-sub{
+    font-family:'Space Grotesk',sans-serif; font-size:14.5px; margin:18px 0 10px;
     display:flex; align-items:center; justify-content:space-between; gap:8px; flex-wrap:wrap;
   }
+  .modal-sub:first-of-type{ margin-top:0; }
   .live-indicator{ display:inline-flex; align-items:center; gap:6px; font-family:'JetBrains Mono',monospace; font-size:10.5px; color:var(--text-muted); font-weight:500; }
   .live-dot{ width:7px; height:7px; border-radius:50%; background:var(--ready); box-shadow:0 0 6px var(--ready); }
   .queue-total{ font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--text-muted); font-weight:500; }
-
   .print-card{ display:flex; gap:14px; align-items:flex-start; min-width:0; }
   .print-thumb, .q-thumb{
     border-radius:10px; flex-shrink:0; overflow:hidden; background:var(--surface-2);
     border:1px solid var(--border-soft); display:flex; align-items:center; justify-content:center;
   }
-  .print-thumb{ width:76px; height:76px; font-size:26px; }
+  .print-thumb{ width:64px; height:64px; font-size:24px; }
   .q-thumb{ width:40px; height:40px; border-radius:8px; font-size:16px; }
   .print-thumb img, .q-thumb img{ width:100%; height:100%; object-fit:cover; }
-  .print-thumb .swatch-fallback{ width:34px; height:34px; }
+  .print-thumb .swatch-fallback{ width:30px; height:30px; }
   .q-thumb .swatch-fallback{ width:20px; height:20px; box-shadow:none; }
   .print-body{ flex:1; min-width:0; }
   .print-label{ font-family:'JetBrains Mono',monospace; font-size:10.5px; text-transform:uppercase; letter-spacing:0.05em; color:var(--text-muted); }
   .print-label.own{ color:var(--accent); }
-  .print-title{ font-family:'Space Grotesk',sans-serif; font-weight:600; font-size:16px; margin:2px 0 6px; overflow-wrap:anywhere; }
+  .print-title{ font-family:'Space Grotesk',sans-serif; font-weight:600; font-size:15.5px; margin:2px 0 6px; overflow-wrap:anywhere; }
   .progress{ height:8px; border-radius:99px; background:var(--surface-2); overflow:hidden; margin:12px 0 7px; }
   .progress > span{ display:block; height:100%; border-radius:99px; background:linear-gradient(90deg, var(--progress), var(--ready)); }
   .print-meta{ display:flex; flex-wrap:wrap; gap:4px 14px; font-family:'JetBrains Mono',monospace; font-size:11.5px; color:var(--text-muted); }
   .print-meta strong{ color:var(--text); font-weight:500; }
   .print-anon{ display:flex; gap:14px; align-items:flex-start; }
   .anon-icon{
-    width:56px; height:56px; border-radius:12px; flex-shrink:0; font-size:24px;
+    width:52px; height:52px; border-radius:12px; flex-shrink:0; font-size:22px;
     display:flex; align-items:center; justify-content:center; background:var(--surface-2); border:1px dashed var(--border);
   }
   .muted{ color:var(--text-muted); font-size:13px; line-height:1.45; }
   .owner-line{ font-size:12px; color:var(--text-muted); margin:2px 0 6px; overflow-wrap:anywhere; }
-
+  .dp-inline{ font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--accent); }
   .admin-print-form{ display:flex; flex-wrap:wrap; gap:8px; align-items:flex-end; margin-top:12px; padding-top:12px; border-top:1px solid var(--border-soft); }
   .admin-print-form .field{ margin:0; width:110px; }
   .admin-print-form .field label{ font-size:10px; }
   .admin-print-form .btns{ display:flex; gap:6px; flex-wrap:wrap; }
-
-  .dp-block{ display:flex; flex-direction:column; gap:1px; }
-  .dp-label{ font-family:'JetBrains Mono',monospace; font-size:9.5px; text-transform:uppercase; letter-spacing:0.07em; color:var(--text-faint); }
-  .dp-ref{ font-family:'JetBrains Mono',monospace; font-size:12.5px; color:var(--accent); letter-spacing:0.02em; overflow-wrap:anywhere; }
-  .dp-inline{ font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--accent); }
-
   .queue-summary{
     display:flex; flex-wrap:wrap; align-items:baseline; gap:4px 14px;
     padding:12px 14px; margin-bottom:12px; border-radius:12px;
@@ -673,52 +655,43 @@
   .q-sub .link-btn{ max-width:160px; }
   .q-actions{ display:flex; gap:2px; flex-shrink:0; }
 
-  .tag.public-flag{ color:var(--ready); border-color:rgba(69,214,196,0.35); }
-  .card-footer{ flex-wrap:wrap; }
-  .card-footer .link-btn{ flex:1 1 90px; min-width:0; }
-  .card-state{ font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--accent); }
-  .vis-btn{
-    font-family:'JetBrains Mono',monospace; font-size:11px; padding:5px 9px; border-radius:7px; cursor:pointer;
-    background:var(--surface-2); color:var(--text-muted); border:1px solid var(--border-soft); white-space:nowrap;
-  }
-  .vis-btn.on{ color:var(--ready); border-color:rgba(69,214,196,0.4); }
-  .vis-btn:hover{ color:var(--text); }
-  .card.highlight, .idea-card.highlight{ border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-soft); }
-
-  .public-section, .users-section{ margin:34px 0 0; }
-  .public-section .sub, .users-section .sub{ font-size:12px; color:var(--text-muted); margin:-6px 0 12px; }
-  .users-section h3{ font-family:'Space Grotesk',sans-serif; font-size:15px; margin:0 0 10px; }
+  /* Pop-ups: Benutzer & Geräte, Profil */
   .user-list, .device-list{ display:flex; flex-direction:column; gap:8px; }
   .user-row, .device-item{
     display:flex; flex-wrap:wrap; align-items:center; gap:8px 12px;
-    padding:11px 13px; border-radius:12px; background:var(--surface); border:1px solid var(--border-soft);
+    padding:11px 13px; border-radius:12px; background:var(--surface-2); border:1px solid var(--border-soft);
   }
-  .device-item{ background:var(--surface-2); }
   .user-main, .device-main{ flex:1 1 200px; min-width:0; }
   .user-email, .device-name{ font-family:'Space Grotesk',sans-serif; font-weight:600; font-size:14px; overflow-wrap:anywhere; display:flex; flex-wrap:wrap; gap:6px; align-items:center; }
   .user-meta, .device-meta{ font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--text-muted); margin-top:3px; line-height:1.5; }
   .user-actions{ display:flex; flex-wrap:wrap; gap:6px; }
   .tag.blocked{ color:var(--fail); border-color:rgba(255,92,92,0.4); }
   .tag.current{ color:var(--accent); border-color:rgba(124,156,255,0.4); }
-  .modal-sub{ font-family:'Space Grotesk',sans-serif; font-size:14.5px; margin:18px 0 6px; }
   .modal-actions.wrap{ flex-wrap:wrap; }
-  .profile-btn{ max-width:220px; }
-  .profile-btn span{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+
+  /* Formular „Einreichen“: Häkchen „Öffentlich anzeigen“ */
+  .check-field label.check{
+    display:flex; align-items:center; gap:9px; cursor:pointer;
+    font-family:'Inter',sans-serif; font-size:13.5px; text-transform:none; letter-spacing:0; color:var(--text);
+  }
+  .check-field input[type=checkbox]{ width:17px; height:17px; accent-color:var(--accent); flex-shrink:0; }
+
+  /* Pop-up: Sichtbarkeit eines eigenen Auftrags */
+  .vis-choice{ margin-bottom:12px; }
+  .vis-choice .seg-btn{ flex:1; justify-content:center; }
+
+  /* Öffentliche Modelle: gleiche Überschrift/Karten wie „Druckaufträge“ */
+  .public-section{ margin:34px 0 0; }
+  .public-section .sub{ font-size:12px; color:var(--text-muted); margin:-6px 0 12px; }
 
   @media (max-width:640px){
-    /* Auf dem Handy wäre die umbrechende Kopfzeile als „sticky“ zu hoch – sie scrollt mit. */
-    .topbar{ position:static; }
-    .topbar-right{ gap:8px; }
-    .topbar-right .btn{ padding:9px 12px; }
-    .profile-btn{ max-width:none; }
-    .profile-btn span{ display:none; }
-    .print-thumb{ width:60px; height:60px; }
+    .profile-label{ display:none; }
     .modal-actions.wrap .btn{ width:100%; justify-content:center; }
   }
   @media (max-width:480px){
     .q-item{ flex-wrap:wrap; }
     .q-actions{ width:100%; justify-content:flex-end; }
-    .panel{ padding:14px 12px; }
+    .print-thumb{ width:52px; height:52px; }
   }
 </style>
 </head>
@@ -734,13 +707,13 @@
   </div>
   <div class="topbar-right">
     <div class="stat-chips" id="statChips"></div>
-    <div class="seg-switch" id="roleSwitch" hidden>
+    <div class="seg-switch" id="roleSwitch">
       <button class="seg-btn" id="submitterBtn" data-role="submitter">Auftrag einreichen</button>
       <button class="seg-btn" id="adminBtn" data-role="admin">🔒 Admin</button>
     </div>
     <button class="btn btn-ghost" id="supportBtn">💬 Support<span class="badge-count" id="supportBadge" style="display:none;"></span></button>
+    <button class="btn btn-ghost" id="profileBtn" title="Profil &amp; vertrauenswürdige Geräte" aria-label="Profil">👤<span class="profile-label">Profil</span></button>
     <button class="btn btn-primary" id="addBtn">+ Hinzufügen</button>
-    <button class="btn btn-ghost profile-btn" id="profileBtn" title="Profil &amp; vertrauenswürdige Geräte">👤 <span id="profileLabel">Profil</span></button>
   </div>
 </div>
 
@@ -750,17 +723,6 @@
     <a class="mw-link" href="https://makerworld.com" target="_blank" rel="noopener">Hier geht’s zur MakerWorld ↗</a>
   </div>
   <div class="mode-banner" id="modeBanner"></div>
-
-  <section class="live-grid" id="liveSection" hidden>
-    <div class="panel" id="currentPrintPanel">
-      <h3><span>🖨️ Aktueller Druck</span><span class="live-indicator" title="Wird automatisch aktualisiert"><span class="live-dot"></span>live</span></h3>
-      <div id="currentPrint"></div>
-    </div>
-    <div class="panel" id="queuePanel">
-      <h3><span>📋 Druckwarteschlange</span><span class="queue-total" id="queueTotal"></span></h3>
-      <div id="queueView"></div>
-    </div>
-  </section>
 
   <div class="support-section" id="supportSection" style="display:none;">
     <h3>🎧 Support-Nachrichten</h3>
@@ -789,11 +751,6 @@
     <div class="grid" id="publicGrid"></div>
   </section>
 
-  <section class="users-section" id="usersSection" hidden>
-    <h3>👥 Benutzer &amp; Geräte</h3>
-    <p class="sub">Sperren oder Geräte zurücksetzen widerruft alle vertrauenswürdigen Geräte des Benutzers sofort.</p>
-    <div class="user-list" id="userList"></div>
-  </section>
 </main>
 
 <footer>
@@ -937,20 +894,15 @@
   </div>
 </div>
 
-<!-- Anmeldung per E-Mail-Code -->
-<div class="gate" id="loginGate" hidden>
-  <div class="gate-card">
-    <div class="gate-brand">
-      <div class="brand-mark">3D</div>
-      <div class="brand-text"><h1>Druckplatte</h1><p>Anmeldung</p></div>
-    </div>
+<!-- Anmeldung (Pop-up über der normalen Oberfläche, ohne Schließen) -->
+<div class="overlay open login-overlay" id="loginGate" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="loginTitle">
+    <h2><span id="loginTitle">🔐 Anmelden</span></h2>
     <div id="accessGate" hidden>
-      <h2 id="accessTitle">Anmeldung wird geprüft …</h2>
-      <p class="hint" id="accessText">Deine E-Mail wurde bereits von Cloudflare Access bestätigt. Es ist kein zusätzlicher Code nötig.</p>
+      <p class="hint"><strong id="accessTitle">Anmeldung wird geprüft …</strong><br><span id="accessText">Deine E-Mail wurde bereits von Cloudflare Access bestätigt. Es ist kein zusätzlicher Code nötig.</span></p>
       <a class="btn btn-primary" id="accessRelogin" href="/cdn-cgi/access/logout" hidden>Neu anmelden</a>
     </div>
     <form id="emailForm">
-      <h2>Anmelden</h2>
       <p class="hint">Gib deine E-Mail-Adresse ein – du bekommst einen 6-stelligen Code.</p>
       <div class="field">
         <label for="g-email">E-Mail</label>
@@ -959,7 +911,6 @@
       <button class="btn btn-primary" type="submit" id="g-send">Code senden</button>
     </form>
     <form id="codeForm" hidden>
-      <h2>Code eingeben</h2>
       <p class="hint" id="g-code-hint"></p>
       <div class="field">
         <label for="g-code">Code</label>
@@ -971,6 +922,49 @@
     <div class="gate-error" id="g-error" role="alert"></div>
     <p class="gate-note">🔐 Nach der Anmeldung bleibt dieses Gerät <strong>30 Tage</strong> vertrauenswürdig – auch Links aus Druckplatte-E-Mails öffnen sich dann ohne neuen Code. Danach ist einmal ein neuer Code nötig.</p>
     <p class="gate-note" id="g-preview-note" hidden>🧪 Preview: Es wird keine echte E-Mail versendet – Codes stehen im <a href="/dev/outbox" target="_blank" rel="noopener">Dev-Postausgang</a>.</p>
+  </div>
+</div>
+
+<!-- Druckstatus: aktueller Druck + Warteschlange -->
+<div class="overlay" id="statusOverlay">
+  <div class="modal wide" role="dialog" aria-modal="true" aria-labelledby="statusTitle">
+    <h2><span id="statusTitle">🖨️ Druckstatus</span><span class="x" id="closeStatus">&times;</span></h2>
+    <h3 class="modal-sub"><span>Aktueller Druck</span><span class="live-indicator" title="Wird automatisch aktualisiert"><span class="live-dot"></span>live</span></h3>
+    <div id="currentPrint"></div>
+    <h3 class="modal-sub"><span>📋 Druckwarteschlange</span><span class="queue-total" id="queueTotal"></span></h3>
+    <div id="queueView"></div>
+    <div class="modal-actions">
+      <button type="button" class="btn btn-primary" id="statusCloseBtn">Schließen</button>
+    </div>
+  </div>
+</div>
+
+<!-- Admin: Benutzer & Geräte -->
+<div class="overlay" id="usersOverlay">
+  <div class="modal wide" role="dialog" aria-modal="true" aria-labelledby="usersTitle">
+    <h2><span id="usersTitle">👥 Benutzer &amp; Geräte</span><span class="x" id="closeUsers">&times;</span></h2>
+    <p class="hint">Sperren oder Geräte zurücksetzen widerruft alle vertrauenswürdigen Geräte des Benutzers sofort. Beim Löschen bleiben die Aufträge erhalten, werden aber privat.</p>
+    <div class="user-list" id="userList"></div>
+    <div class="modal-actions">
+      <button type="button" class="btn btn-primary" id="usersCloseBtn">Schließen</button>
+    </div>
+  </div>
+</div>
+
+<!-- Sichtbarkeit eines eigenen Auftrags -->
+<div class="overlay" id="visibilityOverlay">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="visTitle">
+    <h2><span id="visTitle">Sichtbarkeit</span><span class="x" id="closeVisibility">&times;</span></h2>
+    <p class="hint" id="visModelName"></p>
+    <div class="seg-switch vis-choice" id="visSwitch">
+      <button type="button" class="seg-btn" data-vis="private">🔒 Privat</button>
+      <button type="button" class="seg-btn" data-vis="public">🌍 Öffentlich</button>
+    </div>
+    <p class="hint" id="visHint"></p>
+    <div class="modal-actions">
+      <button type="button" class="btn btn-ghost" id="visCancel">Abbrechen</button>
+      <button type="button" class="btn btn-primary" id="visSave">Speichern</button>
+    </div>
   </div>
 </div>
 

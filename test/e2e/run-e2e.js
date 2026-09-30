@@ -99,7 +99,9 @@ async function persistentState(context) {
 
 async function waitForApp(page) {
   await page.waitForSelector('#loginGate', { state: 'hidden' });
-  await page.waitForSelector('#queueView .queue-summary');
+  // Aktueller Druck + Warteschlange liegen im Pop-up „Druckstatus“ (Chip in der Kopfzeile)
+  await page.waitForSelector('#statusChip');
+  await page.waitForSelector('#queueView .queue-summary', { state: 'attached' });
 }
 
 async function uiLogin(dp, page, email) {
@@ -362,9 +364,14 @@ test('Druckplatte im Browser (Chromium)', { timeout: 600000 }, async (t) => {
       await adminPage.fill('#a-password', ADMIN_PASSWORD);
       await adminPage.click('#adminSubmit');
       await adminPage.waitForSelector('#modeBanner.admin');
-      await adminPage.waitForSelector('#usersSection:not([hidden])');
+      // Benutzerverwaltung: Pop-up über den Chip „👥 Benutzer“ (Hauptseite bleibt im Original-Layout)
+      await adminPage.click('#usersChip');
+      await adminPage.waitForSelector('#usersOverlay.open .user-row');
+      await shot(adminPage, 'admin-benutzer-popup');
+      await adminPage.keyboard.press('Escape');
+      await adminPage.waitForSelector('#usersOverlay:not(.open)', { state: 'attached' });
       const text = await adminPage.textContent('body');
-      for (const expected of ['Alle Druckaufträge', 'Geburtstagsgeschenk', 'ben@example.test', 'DP-2026-000004', 'Ersatzteil Staubsauger-Düse']) {
+      for (const expected of ['Admin-Modus', 'Geburtstagsgeschenk', 'ben@example.test', 'DP-2026-000004', 'Ersatzteil Staubsauger-Düse']) {
         assert.ok(text.includes(expected), `Admin sieht „${expected}“`);
       }
     });
@@ -418,6 +425,47 @@ test('Druckplatte im Browser (Chromium)', { timeout: 600000 }, async (t) => {
       for (const p of await layoutProblems(gatePage)) problems.push(`gate @360: ${p}`);
       await shot(gatePage, 'gate-360');
       await gateContext.close();
+      assert.deepEqual(problems, []);
+    });
+
+    await t.test('E12: Pop-ups „Druckstatus“ und „Sichtbarkeit“ im Stil der Seite', async () => {
+      await annaPage.setViewportSize({ width: 1280, height: 900 });
+      // Druckstatus: Chip zeigt den eigenen Platz, Pop-up zeigt aktuellen Druck + Warteschlange
+      assert.match(await annaPage.textContent('#statusChip'), /Dein Platz\s*3/);
+      await annaPage.click('#statusChip');
+      await annaPage.waitForSelector('#statusOverlay.open #queueView .queue-summary');
+      assert.match(await annaPage.innerText('#statusOverlay'), /Dein Platz: 3/);
+      assert.match(await annaPage.innerText('#statusOverlay'), /Aktuell wird ein anderer Druck bearbeitet/);
+      await shot(annaPage, 'druckstatus-popup-1280');
+      for (const p of await layoutProblems(annaPage)) assert.fail(`Druckstatus-Pop-up: ${p}`);
+      await annaPage.keyboard.press('Escape');
+      await annaPage.waitForSelector('#statusOverlay:not(.open)', { state: 'attached' });
+
+      // Sichtbarkeit: eigener Auftrag öffentlich schalten und zurück – über das Pop-up.
+      // Doras Ansicht wird vorher geschlossen: Lädt sie in der kurzen öffentlichen Phase das Bild und ist
+      // der Auftrag danach schon wieder privat, antwortet der Server korrekt mit 404 – das ist gewolltes
+      // Datenschutzverhalten, würde hier aber die strenge „keine HTTP-Fehler“-Prüfung zufällig auslösen.
+      await doraPage.context().close();
+      const card = annaPage.locator('#grid .card[data-dp="DP-2026-000007"]');
+      await card.locator('[data-visibility]').click();
+      await annaPage.waitForSelector('#visibilityOverlay.open');
+      await shot(annaPage, 'sichtbarkeit-popup-1280');
+      await annaPage.click('#visSwitch [data-vis="public"]');
+      await annaPage.click('#visSave');
+      await annaPage.waitForSelector('#visibilityOverlay:not(.open)', { state: 'attached' });
+      await annaPage.waitForFunction(() => document.querySelector('#grid .card[data-dp="DP-2026-000007"] .tag.public-flag'));
+      await card.locator('[data-visibility]').click();
+      await annaPage.click('#visSwitch [data-vis="private"]');
+      await annaPage.click('#visSave');
+      await annaPage.waitForFunction(() => !document.querySelector('#grid .card[data-dp="DP-2026-000007"] .tag.public-flag'));
+
+      // Handy: Druckstatus-Pop-up ohne Überlauf
+      await annaPage.setViewportSize({ width: 360, height: 780 });
+      await annaPage.click('#statusChip');
+      await annaPage.waitForSelector('#statusOverlay.open');
+      const problems = await layoutProblems(annaPage);
+      await shot(annaPage, 'druckstatus-popup-360');
+      await annaPage.keyboard.press('Escape');
       assert.deepEqual(problems, []);
     });
 
