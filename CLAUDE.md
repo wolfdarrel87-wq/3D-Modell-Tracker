@@ -30,9 +30,18 @@ Abgeben lohnt sich nur, wenn die Teilaufgabe **groß genug** ist (viel Lesen, me
 
 Ergebnisse von Agenten prüfst du selbst (Diff lesen, Tests laufen lassen), bevor du sie dem Nutzer meldest. Erfolge nie ungeprüft übernehmen.
 
+## ChatGPT als zweiter Helfer (nur auf Anweisung des Nutzers)
+
+Sagt der Nutzer, dass ChatGPT eine Aufgabe übernehmen soll (oder nutzt `/chatgpt …`), gibst du genau diese Aufgabe mit `node tools/chatgpt.js [--datei pfad …] "Aufgabe"` an ChatGPT ab. Selbst entscheidest du das nicht.
+
+- Lange Aufgaben im Hintergrund starten und parallel am eigenen Teil weiterarbeiten.
+- An OpenAI geht nur das Nötige: **nie** Secrets, `.env`, Schlüssel, Produktionsdaten, personenbezogene Daten oder interne Infrastruktur-Details (das Skript blockiert Geheimnis-Dateien zusätzlich).
+- Antworten klar als „ChatGPT:“ kennzeichnen, nicht ungeprüft übernehmen; nach dem Einsetzen Tests laufen lassen.
+- Voraussetzungen: `OPENAI_API_KEY` und `OPENAI_MODEL` als Umgebungsvariablen, Netzwerkfreigabe für `api.openai.com`. Fehlt etwas, das in einem Satz sagen – nie nach dem Schlüssel im Chat fragen.
+
 ## Projekt
 
-- Node ≥ 20, keine Abhängigkeiten: `npm test` (Server/Integration), `npm run test:e2e` (Playwright/Chromium), `npm run preview` (isolierte Preview auf localhost:8080).
+- Node ≥ 20, keine Abhängigkeiten: `npm test` (Server/Integration, inkl. ChatGPT-Anbindung gegen lokalen Nachbau), `npm run test:e2e` (Playwright/Chromium), `npm run preview` (isolierte Preview auf localhost:8080).
 - Berichte: `docs/REVIEW-BERICHT.md` (aktuell), `docs/ABSCHLUSSBERICHT.md`.
 - `server/domain/support.js` ist ein Prototyp und wird **nicht** in die echte Druckplatte portiert.
 - Testzahlen immer echt angeben (total/pass/fail/skip), Tests nie löschen oder abschwächen.
